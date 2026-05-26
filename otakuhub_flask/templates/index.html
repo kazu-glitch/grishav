@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OtakuHub - Anime Watch Party Platform</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#dashboard" aria-label="OtakuHub home">
+        <span class="brand-mark">OH</span>
+        <span>
+          <strong>OtakuHub</strong>
+          <small>Watch Party Platform</small>
+        </span>
+      </a>
+
+      <nav class="nav" aria-label="Primary">
+        <a class="nav-link active" href="#dashboard" data-view="dashboard">
+          <span class="icon">⌂</span> Dashboard
+        </a>
+        <a class="nav-link" href="#rooms" data-view="rooms">
+          <span class="icon">▣</span> Watch Rooms
+        </a>
+        <a class="nav-link" href="#anime" data-view="anime">
+          <span class="icon">▤</span> Anime Lists
+        </a>
+        <a class="nav-link" href="#calendar" data-view="calendar">
+          <span class="icon">◷</span> Calendar
+        </a>
+        <a class="nav-link" href="#profile" data-view="profile">
+          <span class="icon">◎</span> Profile
+        </a>
+        <a class="nav-link" href="#admin" data-view="admin">
+          <span class="icon">⚙</span> Admin
+        </a>
+      </nav>
+
+      <section class="mini-panel">
+        <div class="mini-panel-title">Next Premiere</div>
+        <strong id="sidebarCountdown">Loading...</strong>
+        <span id="sidebarCountdownMeta">Episode countdown</span>
+      </section>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Live anime coordination</p>
+          <h1>OtakuHub</h1>
+        </div>
+        <div class="topbar-actions">
+          <label class="search-wrap" aria-label="Search anime, rooms, users">
+            <span>⌕</span>
+            <input id="searchInput" type="search" placeholder="Search anime, rooms, users">
+          </label>
+          <button id="notificationBtn" class="icon-btn" type="button" aria-label="Notifications">
+            <span>◔</span>
+            <b id="notificationCount">0</b>
+          </button>
+          <button id="themeToggle" class="icon-btn" type="button" aria-label="Toggle dark mode">
+            <span>☾</span>
+          </button>
+          <button class="primary-btn" type="button" data-open-modal="roomModal">Create Room</button>
+        </div>
+      </header>
+
+      <section id="dashboard" class="view active" aria-labelledby="dashboardTitle">
+        <div class="hero-band">
+          <div class="hero-copy">
+            <p class="eyebrow">Tonight's featured watch party</p>
+            <h2 id="dashboardTitle">Sync episodes, chat live, track every arc.</h2>
+            <p>Host rooms, organize lists, bookmark scenes, rate episodes, and keep the whole crew ready for the next drop.</p>
+            <div class="hero-actions">
+              <button class="primary-btn" type="button" data-open-modal="roomModal">Start a Watch Party</button>
+              <button class="secondary-btn" type="button" data-nav-target="anime">Browse Anime</button>
+            </div>
+          </div>
+          <div class="hero-media">
+            <img src="{{ url_for('static', filename='assets/hero-poster.png') }}" alt="Stylized anime watch party illustration">
+          </div>
+        </div>
+
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <div class="dashboard-grid">
+          <section class="panel live-panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Active watch rooms</p>
+                <h3>Live Parties</h3>
+              </div>
+              <button class="text-btn" type="button" data-nav-target="rooms">Manage</button>
+            </div>
+            <div id="liveRooms" class="room-stack"></div>
+          </section>
+
+          <section class="panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Countdown tracker</p>
+                <h3>Next Episodes</h3>
+              </div>
+              <button class="text-btn" type="button" data-nav-target="calendar">Calendar</button>
+            </div>
+            <div id="countdownList" class="countdown-list"></div>
+          </section>
+
+          <section class="panel chat-panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Community</p>
+                <h3>Watch Chat</h3>
+              </div>
+              <button class="text-btn" type="button" data-open-modal="commentModal">Comment</button>
+            </div>
+            <div id="chatFeed" class="chat-feed"></div>
+            <form id="quickChatForm" class="quick-chat">
+              <input name="message" placeholder="Type a chat message" required>
+              <button type="submit" class="primary-btn">Send</button>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <section id="rooms" class="view" aria-labelledby="roomsTitle">
+        <div class="section-head page-head">
+          <div>
+            <p class="eyebrow">CRUD</p>
+            <h2 id="roomsTitle">Watch Rooms</h2>
+          </div>
+          <button class="primary-btn" type="button" data-open-modal="roomModal">New Room</button>
+        </div>
+        <div id="roomsGrid" class="cards-grid"></div>
+      </section>
+
+      <section id="anime" class="view" aria-labelledby="animeTitle">
+        <div class="section-head page-head">
+          <div>
+            <p class="eyebrow">Lists, favorites, progress</p>
+            <h2 id="animeTitle">Anime Library</h2>
+          </div>
+          <button class="primary-btn" type="button" data-open-modal="animeModal">Add Anime</button>
+        </div>
+        <div class="tabs" role="tablist" aria-label="Anime library filters">
+          <button class="tab active" type="button" data-filter="all">All</button>
+          <button class="tab" type="button" data-filter="favorite">Favorites</button>
+          <button class="tab" type="button" data-filter="watching">Watching</button>
+          <button class="tab" type="button" data-filter="planned">Plan to Watch</button>
+        </div>
+        <div id="animeGrid" class="anime-grid"></div>
+      </section>
+
+      <section id="calendar" class="view" aria-labelledby="calendarTitle">
+        <div class="section-head page-head">
+          <div>
+            <p class="eyebrow">Schedules and news</p>
+            <h2 id="calendarTitle">Upcoming Calendar</h2>
+          </div>
+          <button class="primary-btn" type="button" data-open-modal="scheduleModal">Add Schedule</button>
+        </div>
+        <div class="calendar-layout">
+          <div id="scheduleList" class="schedule-list"></div>
+          <aside class="panel news-panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Anime news</p>
+                <h3>News Desk</h3>
+              </div>
+            </div>
+            <div id="newsList" class="news-list"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="profile" class="view" aria-labelledby="profileTitle">
+        <div class="profile-layout">
+          <section class="profile-card">
+            <img src="{{ url_for('static', filename='assets/avatar.png') }}" alt="OtakuHub user avatar">
+            <div>
+              <p class="eyebrow">User profile</p>
+              <h2 id="profileTitle">Mika Tachibana</h2>
+              <p>Room host, seasonal tracker, and spoiler-free chat moderator.</p>
+              <div class="profile-actions">
+                <button class="secondary-btn" type="button" data-open-modal="commentModal">Write Review</button>
+                <button class="primary-btn" type="button" data-open-modal="animeModal">Update List</button>
+              </div>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Bookmarks and reviews</p>
+                <h3>Activity</h3>
+              </div>
+            </div>
+            <div id="activityList" class="activity-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="admin" class="view" aria-labelledby="adminTitle">
+        <div class="section-head page-head">
+          <div>
+            <p class="eyebrow">Admin dashboard</p>
+            <h2 id="adminTitle">Platform Control</h2>
+          </div>
+          <button id="resetDemoBtn" class="danger-btn" type="button">Reset Demo Data</button>
+        </div>
+        <div id="adminGrid" class="admin-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="notificationTray" class="tray" aria-live="polite"></div>
+
+  <dialog id="roomModal">
+    <form id="roomForm" method="dialog" class="modal-card">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Watch party</p>
+          <h3 id="roomModalTitle">Create Room</h3>
+        </div>
+        <button class="icon-btn close-modal" type="button" aria-label="Close">×</button>
+      </div>
+      <input type="hidden" name="id">
+      <label>Room name <input name="name" required placeholder="Friday Shonen Night"></label>
+      <label>Anime <input name="anime" required placeholder="Jujutsu Kaisen"></label>
+      <div class="form-row">
+        <label>Episode <input name="episode" type="number" min="1" required></label>
+        <label>Capacity <input name="capacity" type="number" min="2" required></label>
+      </div>
+      <label>Room status
+        <select name="status">
+          <option>Live</option>
+          <option>Scheduled</option>
+          <option>Private</option>
+        </select>
+      </label>
+      <button class="primary-btn" type="submit">Save Room</button>
+    </form>
+  </dialog>
+
+  <dialog id="animeModal">
+    <form id="animeForm" method="dialog" class="modal-card">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Anime list</p>
+          <h3 id="animeModalTitle">Add Anime</h3>
+        </div>
+        <button class="icon-btn close-modal" type="button" aria-label="Close">×</button>
+      </div>
+      <input type="hidden" name="id">
+      <label>Title <input name="title" required placeholder="Frieren: Beyond Journey's End"></label>
+      <div class="form-row">
+        <label>Total episodes <input name="episodes" type="number" min="1" required></label>
+        <label>Watched <input name="watched" type="number" min="0" required></label>
+      </div>
+      <div class="form-row">
+        <label>Rating <input name="rating" type="number" min="1" max="10" step="0.1" required></label>
+        <label>Status
+          <select name="status">
+            <option value="watching">Watching</option>
+            <option value="planned">Plan to Watch</option>
+            <option value="completed">Completed</option>
+          </select>
+        </label>
+      </div>
+      <label class="check-row"><input name="favorite" type="checkbox"> Add to favorite anime lists</label>
+      <button class="primary-btn" type="submit">Save Anime</button>
+    </form>
+  </dialog>
+
+  <dialog id="scheduleModal">
+    <form id="scheduleForm" method="dialog" class="modal-card">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Schedule</p>
+          <h3 id="scheduleModalTitle">Add Schedule</h3>
+        </div>
+        <button class="icon-btn close-modal" type="button" aria-label="Close">×</button>
+      </div>
+      <input type="hidden" name="id">
+      <label>Title <input name="title" required placeholder="Solo Leveling S3 Ep 1"></label>
+      <div class="form-row">
+        <label>Date <input name="date" type="date" required></label>
+        <label>Time <input name="time" type="time" required></label>
+      </div>
+      <label>Type
+        <select name="type">
+          <option>Premiere</option>
+          <option>Watch Party</option>
+          <option>Finale</option>
+          <option>News Drop</option>
+        </select>
+      </label>
+      <button class="primary-btn" type="submit">Save Schedule</button>
+    </form>
+  </dialog>
+
+  <dialog id="commentModal">
+    <form id="commentForm" method="dialog" class="modal-card">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Comments and reviews</p>
+          <h3 id="commentModalTitle">Add Comment</h3>
+        </div>
+        <button class="icon-btn close-modal" type="button" aria-label="Close">×</button>
+      </div>
+      <input type="hidden" name="id">
+      <label>Name <input name="author" required placeholder="Mika"></label>
+      <label>Anime or room <input name="target" required placeholder="Demon Slayer room"></label>
+      <label>Message <textarea name="message" required placeholder="The final scene was incredible."></textarea></label>
+      <label>Reaction
+        <select name="reaction">
+          <option>🔥</option>
+          <option>✨</option>
+          <option>😭</option>
+          <option>👏</option>
+          <option>💯</option>
+        </select>
+      </label>
+      <button class="primary-btn" type="submit">Save Comment</button>
+    </form>
+  </dialog>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
