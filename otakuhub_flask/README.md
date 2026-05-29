@@ -1,6 +1,6 @@
 # OtakuHub Flask + MySQL
 
-Full-stack anime watch party platform with a Flask API, MySQL database, and the OtakuHub frontend served from Flask.
+Full-stack anime watch party platform with a Flask API, MySQL database, and the OtakuHub frontend served from Flask. The demo data uses Naruto, One Piece, Attack on Titan, and Hunter x Hunter poster URLs from MyAnimeList data returned by Jikan.
 
 ## Folder Structure
 
@@ -48,6 +48,8 @@ copy .env.example .env
 ```bash
 python init_db.py
 ```
+
+Run `python init_db.py` again after schema or seed changes. It recreates the demo database, so only do this when you are okay resetting local demo records.
 
 You can also run the SQL manually:
 

@@ -1,10 +1,17 @@
-const STORAGE_KEY = "otakuhub-state-v1";
+const STORAGE_KEY = "otakuhub-state-v2";
 
-const posterMap = [
-  "assets/poster-neon.png",
-  "assets/poster-sakura.png",
-  "assets/poster-storm.png",
-  "assets/poster-sunrise.png"
+const animePosters = {
+  naruto: "https://cdn.myanimelist.net/images/anime/1141/142503l.jpg",
+  onePiece: "https://cdn.myanimelist.net/images/anime/1244/138851l.jpg",
+  attackOnTitan: "https://cdn.myanimelist.net/images/anime/10/47347l.jpg",
+  hunterXHunter: "https://cdn.myanimelist.net/images/anime/1337/99013l.jpg"
+};
+
+const reactionOptions = [
+  { key: "Ninja Hype", title: "Ninja Hype", imageUrl: animePosters.naruto },
+  { key: "Pirate Crew", title: "Pirate Crew", imageUrl: animePosters.onePiece },
+  { key: "Titan Shock", title: "Titan Shock", imageUrl: animePosters.attackOnTitan },
+  { key: "Nen Boost", title: "Nen Boost", imageUrl: animePosters.hunterXHunter }
 ];
 
 const news = [
@@ -24,29 +31,29 @@ const news = [
 
 const seedState = {
   rooms: [
-    { id: "room-1", name: "Friday Shonen Night", anime: "Jujutsu Kaisen", episode: 18, capacity: 42, viewers: 31, status: "Live", reactions: { "🔥": 24, "✨": 12, "😭": 4 } },
-    { id: "room-2", name: "Cozy Isekai Cafe", anime: "Frieren: Beyond Journey's End", episode: 11, capacity: 28, viewers: 18, status: "Scheduled", reactions: { "👏": 10, "💯": 6 } },
-    { id: "room-3", name: "Midnight Mecha Sync", anime: "Gundam: Iron Bloom", episode: 6, capacity: 20, viewers: 14, status: "Private", reactions: { "🔥": 8, "✨": 7 } }
+    { id: "room-1", name: "Hidden Leaf Watch Room", anime: "Naruto", episode: 19, capacity: 42, viewers: 31, status: "Live", imageUrl: animePosters.naruto, reactions: { "Ninja Hype": 24, "Nen Boost": 6 } },
+    { id: "room-2", name: "Grand Line Crew Night", anime: "One Piece", episode: 1101, capacity: 56, viewers: 44, status: "Scheduled", imageUrl: animePosters.onePiece, reactions: { "Pirate Crew": 18, "Ninja Hype": 7 } },
+    { id: "room-3", name: "Survey Corps Sync", anime: "Attack on Titan", episode: 13, capacity: 35, viewers: 28, status: "Private", imageUrl: animePosters.attackOnTitan, reactions: { "Titan Shock": 20, "Pirate Crew": 5 } }
   ],
   anime: [
-    { id: "anime-1", title: "Jujutsu Kaisen", episodes: 24, watched: 18, rating: 9.4, status: "watching", favorite: true },
-    { id: "anime-2", title: "Frieren: Beyond Journey's End", episodes: 28, watched: 11, rating: 9.7, status: "watching", favorite: true },
-    { id: "anime-3", title: "Solo Leveling", episodes: 12, watched: 12, rating: 8.8, status: "completed", favorite: false },
-    { id: "anime-4", title: "Dandadan", episodes: 12, watched: 0, rating: 8.6, status: "planned", favorite: true }
+    { id: "anime-1", title: "Naruto", episodes: 220, watched: 84, rating: 8.0, status: "watching", favorite: true, imageUrl: animePosters.naruto },
+    { id: "anime-2", title: "One Piece", episodes: 1122, watched: 208, rating: 8.7, status: "watching", favorite: true, imageUrl: animePosters.onePiece },
+    { id: "anime-3", title: "Attack on Titan", episodes: 25, watched: 25, rating: 8.6, status: "completed", favorite: true, imageUrl: animePosters.attackOnTitan },
+    { id: "anime-4", title: "Hunter x Hunter", episodes: 148, watched: 36, rating: 9.0, status: "watching", favorite: true, imageUrl: animePosters.hunterXHunter }
   ],
   comments: [
-    { id: "comment-1", author: "Mika", target: "Friday Shonen Night", message: "No spoilers in chat and the sync timer worked perfectly.", reaction: "✨", createdAt: Date.now() - 1000 * 60 * 38 },
-    { id: "comment-2", author: "Ren", target: "Frieren: Beyond Journey's End", message: "Episode 11 needs a bookmark at the campfire scene.", reaction: "😭", createdAt: Date.now() - 1000 * 60 * 92 },
-    { id: "comment-3", author: "Aiko", target: "Solo Leveling", message: "That raid arc deserves a rewatch party this weekend.", reaction: "🔥", createdAt: Date.now() - 1000 * 60 * 180 }
+    { id: "comment-1", author: "Mika", target: "Naruto", message: "The Naruto room needs a Team 7 rewatch after this arc.", reaction: "Ninja Hype", createdAt: Date.now() - 1000 * 60 * 38 },
+    { id: "comment-2", author: "Ren", target: "One Piece", message: "Grand Line nights are perfect for long watch parties.", reaction: "Pirate Crew", createdAt: Date.now() - 1000 * 60 * 92 },
+    { id: "comment-3", author: "Aiko", target: "Attack on Titan", message: "That reveal deserves a spoiler-free review thread.", reaction: "Titan Shock", createdAt: Date.now() - 1000 * 60 * 180 }
   ],
   schedules: [
-    { id: "schedule-1", title: "Jujutsu Kaisen Ep 19", date: "2026-05-27", time: "20:00", type: "Premiere" },
-    { id: "schedule-2", title: "Frieren Rewatch Room", date: "2026-05-29", time: "19:30", type: "Watch Party" },
-    { id: "schedule-3", title: "Summer Season Preview", date: "2026-06-02", time: "18:00", type: "News Drop" }
+    { id: "schedule-1", title: "Naruto Ep 85 Watch Party", date: "2026-05-27", time: "20:00", type: "Premiere" },
+    { id: "schedule-2", title: "One Piece Grand Line Room", date: "2026-05-29", time: "19:30", type: "Watch Party" },
+    { id: "schedule-3", title: "Hunter x Hunter Nen Training Night", date: "2026-06-02", time: "18:00", type: "Watch Party" }
   ],
   notifications: [
-    "Jujutsu Kaisen Ep 19 starts tomorrow at 20:00.",
-    "Ren bookmarked Frieren Ep 11.",
+    "Naruto Ep 85 starts tomorrow at 20:00.",
+    "Ren bookmarked One Piece Ep 208.",
     "Admin review queue has 3 fresh comments."
   ],
   theme: "dark"
@@ -76,8 +83,14 @@ function uid(prefix) {
   return `${prefix}-${crypto.randomUUID ? crypto.randomUUID() : Date.now()}`;
 }
 
-function posterFor(index) {
-  return posterMap[index % posterMap.length];
+function posterFor(item, index = 0) {
+  if (item?.imageUrl) return item.imageUrl;
+  const values = Object.values(animePosters);
+  return values[index % values.length];
+}
+
+function reactionImage(key) {
+  return reactionOptions.find((option) => option.key === key)?.imageUrl || animePosters.naruto;
 }
 
 function formatDateTime(schedule) {
@@ -150,12 +163,16 @@ function renderRooms() {
 }
 
 function roomCard(room, index, full) {
-  const reactionButtons = ["🔥", "✨", "😭", "👏", "💯"].map((emoji) => `
-    <button type="button" data-react-room="${room.id}" data-emoji="${emoji}">${emoji} ${room.reactions?.[emoji] || 0}</button>
+  const reactionButtons = reactionOptions.map((reaction) => `
+    <button class="reaction-chip" type="button" data-react-room="${room.id}" data-reaction="${reaction.key}">
+      <img src="${reaction.imageUrl}" alt="${reaction.title}">
+      <span>${reaction.title}</span>
+      <strong>${room.reactions?.[reaction.key] || 0}</strong>
+    </button>
   `).join("");
   return `
     <article class="room-card ${full ? "full" : ""}">
-      <img class="poster-thumb" src="${posterFor(index)}" alt="${room.anime} poster art">
+      <img class="poster-thumb" src="${posterFor(room, index)}" alt="${room.anime} poster art">
       <div>
         <div class="badge-row">
           <span class="badge ${room.status === "Live" ? "live" : "warn"}">${room.status}</span>
@@ -183,7 +200,7 @@ function renderAnime() {
     const progress = Math.min(100, Math.round((item.watched / item.episodes) * 100));
     return `
       <article class="anime-card">
-        <img src="${posterFor(index + 1)}" alt="${item.title} poster art">
+        <img src="${posterFor(item, index + 1)}" alt="${item.title} poster art">
         <div class="anime-card-body">
           <div class="badge-row">
             <span class="badge">${item.status}</span>
@@ -255,7 +272,7 @@ function renderComments() {
       <div class="badge-row">
         <span class="badge">${comment.author}</span>
         <span class="badge">${comment.target}</span>
-        <span class="badge">${comment.reaction}</span>
+        <span class="image-badge"><img src="${reactionImage(comment.reaction)}" alt="${comment.reaction}">${comment.reaction}</span>
       </div>
       <p>${comment.message}</p>
       <div class="card-actions">
@@ -362,6 +379,7 @@ function handleRoomSubmit(event) {
     capacity: Number(data.capacity),
     viewers: Math.max(1, Math.round(Number(data.capacity) * 0.62)),
     status: data.status,
+    imageUrl: state.anime.find((item) => item.title.toLowerCase() === data.anime.toLowerCase())?.imageUrl || state.rooms.find((item) => item.id === data.id)?.imageUrl || animePosters.naruto,
     reactions: state.rooms.find((item) => item.id === data.id)?.reactions || {}
   };
   state.rooms = data.id ? state.rooms.map((item) => item.id === data.id ? room : item) : [room, ...state.rooms];
@@ -382,7 +400,8 @@ function handleAnimeSubmit(event) {
     watched: Math.min(Number(data.watched), Number(data.episodes)),
     rating: Number(data.rating).toFixed(1),
     status: data.status,
-    favorite: Boolean(data.favorite)
+    favorite: Boolean(data.favorite),
+    imageUrl: state.anime.find((item) => item.id === data.id)?.imageUrl || posterFor(null, state.anime.length)
   };
   state.anime = data.id ? state.anime.map((item) => item.id === data.id ? anime : item) : [anime, ...state.anime];
   saveState();
@@ -490,7 +509,7 @@ function bindEvents() {
   $("#quickChatForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const message = new FormData(event.currentTarget).get("message");
-    state.comments.unshift({ id: uid("comment"), author: "Mika", target: "Global Chat", message, reaction: "✨", createdAt: Date.now() });
+    state.comments.unshift({ id: uid("comment"), author: "Mika", target: "Global Chat", message, reaction: "Ninja Hype", createdAt: Date.now() });
     saveState();
     event.currentTarget.reset();
     render();
@@ -532,7 +551,7 @@ function handleDelegatedActions(event) {
 
   if (dataset.editRoom) editRoom(dataset.editRoom);
   if (dataset.deleteRoom) removeItem("rooms", dataset.deleteRoom, "Watch room deleted.");
-  if (dataset.reactRoom) reactToRoom(dataset.reactRoom, dataset.emoji);
+  if (dataset.reactRoom) reactToRoom(dataset.reactRoom, dataset.reaction);
 
   if (dataset.editAnime) editAnime(dataset.editAnime);
   if (dataset.deleteAnime) removeItem("anime", dataset.deleteAnime, "Anime removed from list.");
@@ -553,15 +572,15 @@ function removeItem(collection, id, message) {
   notify(message);
 }
 
-function reactToRoom(id, emoji) {
+function reactToRoom(id, reaction) {
   state.rooms = state.rooms.map((room) => {
     if (room.id !== id) return room;
-    const reactions = { ...room.reactions, [emoji]: (room.reactions?.[emoji] || 0) + 1 };
+    const reactions = { ...room.reactions, [reaction]: (room.reactions?.[reaction] || 0) + 1 };
     return { ...room, reactions };
   });
   saveState();
   render();
-  notify(`Reaction ${emoji} added.`);
+  notify(`${reaction} reaction added.`);
 }
 
 function progressAnime(id) {
@@ -579,7 +598,7 @@ function bookmarkAnime(id) {
     author: "Mika",
     target: anime.title,
     message: `Bookmarked episode ${anime.watched || 1} for the next watch party.`,
-    reaction: "✨",
+    reaction: "Ninja Hype",
     createdAt: Date.now()
   });
   saveState();

@@ -53,6 +53,7 @@ def room_to_json(row):
         "capacity": row["capacity"],
         "viewers": row["viewers"],
         "status": row["status"],
+        "imageUrl": row.get("image_url"),
         "reactions": parse_reactions(row["reactions"]),
     }
 
@@ -66,6 +67,7 @@ def anime_to_json(row):
         "rating": float(row["rating"]),
         "status": row["status"],
         "favorite": bool(row["favorite"]),
+        "imageUrl": row.get("image_url"),
     }
 
 
@@ -152,8 +154,8 @@ def replace_state():
 
         cursor.executemany(
             """
-            INSERT INTO watch_rooms (id, name, anime, episode, capacity, viewers, status, reactions)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO watch_rooms (id, name, anime, episode, capacity, viewers, status, image_url, reactions)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             [
                 (
@@ -164,6 +166,7 @@ def replace_state():
                     int(room.get("capacity", 2)),
                     int(room.get("viewers", 0)),
                     room.get("status", "Scheduled"),
+                    room.get("imageUrl"),
                     json.dumps(room.get("reactions", {}), ensure_ascii=False),
                 )
                 for room in rooms
@@ -171,8 +174,8 @@ def replace_state():
         )
         cursor.executemany(
             """
-            INSERT INTO anime_lists (id, title, episodes, watched, rating, status, favorite)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO anime_lists (id, title, episodes, watched, rating, status, favorite, image_url)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """,
             [
                 (
@@ -183,6 +186,7 @@ def replace_state():
                     float(item.get("rating", 0)),
                     item.get("status", "planned"),
                     bool(item.get("favorite", False)),
+                    item.get("imageUrl"),
                 )
                 for item in anime
             ],
@@ -198,7 +202,7 @@ def replace_state():
                     comment.get("author", "Anonymous"),
                     comment.get("target", "Global Chat"),
                     comment.get("message", ""),
-                    comment.get("reaction", "✨"),
+                    comment.get("reaction", "Ninja Hype"),
                     int(comment.get("createdAt", int(time.time() * 1000))),
                 )
                 for comment in comments
@@ -241,8 +245,8 @@ def create_room():
     room_id = data.get("id", new_id("room"))
     execute(
         """
-        INSERT INTO watch_rooms (id, name, anime, episode, capacity, viewers, status, reactions)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO watch_rooms (id, name, anime, episode, capacity, viewers, status, image_url, reactions)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
             room_id,
@@ -252,6 +256,7 @@ def create_room():
             int(data["capacity"]),
             int(data.get("viewers", 0)),
             data.get("status", "Scheduled"),
+            data.get("imageUrl"),
             json.dumps(data.get("reactions", {}), ensure_ascii=False),
         ),
     )
@@ -264,7 +269,7 @@ def update_room(room_id):
     execute(
         """
         UPDATE watch_rooms
-        SET name = %s, anime = %s, episode = %s, capacity = %s, viewers = %s, status = %s, reactions = %s
+        SET name = %s, anime = %s, episode = %s, capacity = %s, viewers = %s, status = %s, image_url = %s, reactions = %s
         WHERE id = %s
         """,
         (
@@ -274,6 +279,7 @@ def update_room(room_id):
             int(data["capacity"]),
             int(data.get("viewers", 0)),
             data.get("status", "Scheduled"),
+            data.get("imageUrl"),
             json.dumps(data.get("reactions", {}), ensure_ascii=False),
             room_id,
         ),
@@ -298,10 +304,10 @@ def create_anime():
     anime_id = data.get("id", new_id("anime"))
     execute(
         """
-        INSERT INTO anime_lists (id, title, episodes, watched, rating, status, favorite)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO anime_lists (id, title, episodes, watched, rating, status, favorite, image_url)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """,
-        (anime_id, data["title"], int(data["episodes"]), int(data.get("watched", 0)), float(data.get("rating", 0)), data.get("status", "planned"), bool(data.get("favorite", False))),
+        (anime_id, data["title"], int(data["episodes"]), int(data.get("watched", 0)), float(data.get("rating", 0)), data.get("status", "planned"), bool(data.get("favorite", False)), data.get("imageUrl")),
     )
     return ok(anime_to_json(fetch_one("SELECT * FROM anime_lists WHERE id = %s", (anime_id,))), 201)
 
@@ -312,10 +318,10 @@ def update_anime(anime_id):
     execute(
         """
         UPDATE anime_lists
-        SET title = %s, episodes = %s, watched = %s, rating = %s, status = %s, favorite = %s
+        SET title = %s, episodes = %s, watched = %s, rating = %s, status = %s, favorite = %s, image_url = %s
         WHERE id = %s
         """,
-        (data["title"], int(data["episodes"]), int(data.get("watched", 0)), float(data.get("rating", 0)), data.get("status", "planned"), bool(data.get("favorite", False)), anime_id),
+        (data["title"], int(data["episodes"]), int(data.get("watched", 0)), float(data.get("rating", 0)), data.get("status", "planned"), bool(data.get("favorite", False)), data.get("imageUrl"), anime_id),
     )
     return ok(anime_to_json(fetch_one("SELECT * FROM anime_lists WHERE id = %s", (anime_id,))))
 
@@ -340,7 +346,7 @@ def create_comment():
         INSERT INTO comments (id, author, target, message, reaction, created_at_ms)
         VALUES (%s, %s, %s, %s, %s, %s)
         """,
-        (comment_id, data["author"], data["target"], data["message"], data.get("reaction", "✨"), int(data.get("createdAt", int(time.time() * 1000)))),
+        (comment_id, data["author"], data["target"], data["message"], data.get("reaction", "Ninja Hype"), int(data.get("createdAt", int(time.time() * 1000)))),
     )
     return ok(comment_to_json(fetch_one("SELECT * FROM comments WHERE id = %s", (comment_id,))), 201)
 
@@ -354,7 +360,7 @@ def update_comment(comment_id):
         SET author = %s, target = %s, message = %s, reaction = %s, created_at_ms = %s
         WHERE id = %s
         """,
-        (data["author"], data["target"], data["message"], data.get("reaction", "✨"), int(data.get("createdAt", int(time.time() * 1000))), comment_id),
+        (data["author"], data["target"], data["message"], data.get("reaction", "Ninja Hype"), int(data.get("createdAt", int(time.time() * 1000))), comment_id),
     )
     return ok(comment_to_json(fetch_one("SELECT * FROM comments WHERE id = %s", (comment_id,))))
 

@@ -26,6 +26,7 @@ CREATE TABLE watch_rooms (
   capacity INT NOT NULL,
   viewers INT NOT NULL DEFAULT 0,
   status ENUM('Live', 'Scheduled', 'Private') NOT NULL DEFAULT 'Scheduled',
+  image_url VARCHAR(500),
   reactions JSON,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -39,6 +40,7 @@ CREATE TABLE anime_lists (
   rating DECIMAL(3, 1) NOT NULL DEFAULT 0.0,
   status ENUM('watching', 'planned', 'completed') NOT NULL DEFAULT 'planned',
   favorite BOOLEAN NOT NULL DEFAULT FALSE,
+  image_url VARCHAR(500),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -48,7 +50,7 @@ CREATE TABLE comments (
   author VARCHAR(120) NOT NULL,
   target VARCHAR(180) NOT NULL,
   message TEXT NOT NULL,
-  reaction VARCHAR(16) NOT NULL DEFAULT '✨',
+  reaction VARCHAR(40) NOT NULL DEFAULT 'Ninja Hype',
   created_at_ms BIGINT NOT NULL
 );
 

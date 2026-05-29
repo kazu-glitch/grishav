@@ -1,30 +1,30 @@
 :root {
   color-scheme: dark;
-  --bg: #090d13;
-  --surface: #111827;
-  --surface-2: #172033;
-  --surface-3: #202b42;
+  --bg: #050505;
+  --surface: #101010;
+  --surface-2: #181818;
+  --surface-3: #24210f;
   --text: #f6f8fb;
-  --muted: #a5b1c5;
-  --line: rgba(255, 255, 255, 0.1);
-  --primary: #f2556d;
-  --primary-2: #ff8b4a;
-  --accent: #3fd4c8;
-  --green: #77d878;
-  --yellow: #f5c75c;
+  --muted: #b8b2a0;
+  --line: rgba(255, 214, 69, 0.18);
+  --primary: #f7c800;
+  --primary-2: #ff9f1c;
+  --accent: #ffd645;
+  --green: #9fd85c;
+  --yellow: #ffd645;
   --danger: #ff5d66;
   --shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
 }
 
 :root.light {
   color-scheme: light;
-  --bg: #f4f7fb;
+  --bg: #fff8df;
   --surface: #ffffff;
-  --surface-2: #edf2f8;
-  --surface-3: #dde6f1;
-  --text: #162033;
-  --muted: #637088;
-  --line: rgba(22, 32, 51, 0.12);
+  --surface-2: #fff1b8;
+  --surface-3: #ffe585;
+  --text: #191407;
+  --muted: #6f654d;
+  --line: rgba(48, 37, 0, 0.14);
   --shadow: 0 20px 60px rgba(49, 67, 93, 0.14);
 }
 
@@ -93,7 +93,7 @@ img {
   height: 48px;
   border-radius: 8px;
   background: linear-gradient(135deg, var(--primary), var(--primary-2));
-  color: #fff;
+  color: #151000;
   font-weight: 800;
 }
 
@@ -252,7 +252,7 @@ img {
 
 .primary-btn {
   background: linear-gradient(135deg, var(--primary), var(--primary-2));
-  color: #fff;
+  color: #151000;
 }
 
 .secondary-btn {
@@ -312,7 +312,7 @@ img {
   border: 1px solid var(--line);
   border-radius: 8px;
   background:
-    radial-gradient(circle at 12% 10%, rgba(63, 212, 200, 0.24), transparent 32%),
+    radial-gradient(circle at 12% 10%, rgba(255, 214, 69, 0.24), transparent 32%),
     linear-gradient(135deg, color-mix(in srgb, var(--surface-2) 92%, #000), var(--surface));
 }
 
@@ -526,6 +526,41 @@ img {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text);
+  font-weight: 800;
+}
+
+.reaction-chip {
+  display: inline-grid;
+  grid-template-columns: 32px minmax(72px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 150px;
+  padding: 4px 8px 4px 4px;
+  text-align: left;
+}
+
+.reaction-chip img,
+.image-badge img {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.reaction-chip strong {
+  color: var(--accent);
+}
+
+.image-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 2px 10px 2px 2px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.78rem;
   font-weight: 800;
 }
 
