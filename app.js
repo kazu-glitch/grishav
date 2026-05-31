@@ -36,10 +36,10 @@ const seedState = {
     { id: "room-3", name: "Survey Corps Sync", anime: "Attack on Titan", episode: 13, capacity: 35, viewers: 28, status: "Private", imageUrl: animePosters.attackOnTitan, reactions: { "Titan Shock": 20, "Pirate Crew": 5 } }
   ],
   anime: [
-    { id: "anime-1", title: "Naruto", episodes: 220, watched: 84, rating: 8.0, status: "watching", favorite: true, imageUrl: animePosters.naruto },
-    { id: "anime-2", title: "One Piece", episodes: 1122, watched: 208, rating: 8.7, status: "watching", favorite: true, imageUrl: animePosters.onePiece },
-    { id: "anime-3", title: "Attack on Titan", episodes: 25, watched: 25, rating: 8.6, status: "completed", favorite: true, imageUrl: animePosters.attackOnTitan },
-    { id: "anime-4", title: "Hunter x Hunter", episodes: 148, watched: 36, rating: 9.0, status: "watching", favorite: true, imageUrl: animePosters.hunterXHunter }
+    { id: "anime-1", title: "Naruto", episodes: 220, watched: 84, rating: 8.0, status: "watching", favorite: true, genre: "Ninja Adventure", studio: "Pierrot", imageUrl: animePosters.naruto },
+    { id: "anime-2", title: "One Piece", episodes: 1122, watched: 208, rating: 8.7, status: "watching", favorite: true, genre: "Pirate Adventure", studio: "Toei Animation", imageUrl: animePosters.onePiece },
+    { id: "anime-3", title: "Attack on Titan", episodes: 25, watched: 25, rating: 8.6, status: "completed", favorite: true, genre: "Dark Fantasy", studio: "Wit Studio", imageUrl: animePosters.attackOnTitan },
+    { id: "anime-4", title: "Hunter x Hunter", episodes: 148, watched: 36, rating: 9.0, status: "watching", favorite: true, genre: "Action Adventure", studio: "Madhouse", imageUrl: animePosters.hunterXHunter }
   ],
   comments: [
     { id: "comment-1", author: "Mika", target: "Naruto", message: "The Naruto room needs a Team 7 rewatch after this arc.", reaction: "Ninja Hype", createdAt: Date.now() - 1000 * 60 * 38 },
@@ -206,6 +206,8 @@ function renderAnime() {
             <span class="badge">${item.status}</span>
             ${item.favorite ? '<span class="badge live">Favorite</span>' : ""}
             <span class="badge">${item.rating}/10</span>
+            <span class="badge">${item.genre || "Shonen"}</span>
+            <span class="badge">${item.studio || "Studio TBA"}</span>
           </div>
           <h4>${item.title}</h4>
           <p>Recommendation match: ${recommendationScore(item)}%</p>
@@ -401,6 +403,8 @@ function handleAnimeSubmit(event) {
     rating: Number(data.rating).toFixed(1),
     status: data.status,
     favorite: Boolean(data.favorite),
+    genre: state.anime.find((item) => item.id === data.id)?.genre || "Shonen",
+    studio: state.anime.find((item) => item.id === data.id)?.studio || "Studio TBA",
     imageUrl: state.anime.find((item) => item.id === data.id)?.imageUrl || posterFor(null, state.anime.length)
   };
   state.anime = data.id ? state.anime.map((item) => item.id === data.id ? anime : item) : [anime, ...state.anime];

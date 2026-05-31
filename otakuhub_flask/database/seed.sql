@@ -8,11 +8,11 @@ INSERT INTO watch_rooms (id, name, anime, episode, capacity, viewers, status, im
 ('room-2', 'Grand Line Crew Night', 'One Piece', 1101, 56, 44, 'Scheduled', 'https://cdn.myanimelist.net/images/anime/1244/138851l.jpg', JSON_OBJECT('Pirate Crew', 18, 'Ninja Hype', 7)),
 ('room-3', 'Survey Corps Sync', 'Attack on Titan', 13, 35, 28, 'Private', 'https://cdn.myanimelist.net/images/anime/10/47347l.jpg', JSON_OBJECT('Titan Shock', 20, 'Pirate Crew', 5));
 
-INSERT INTO anime_lists (id, title, episodes, watched, rating, status, favorite, image_url) VALUES
-('anime-1', 'Naruto', 220, 84, 8.0, 'watching', TRUE, 'https://cdn.myanimelist.net/images/anime/1141/142503l.jpg'),
-('anime-2', 'One Piece', 1122, 208, 8.7, 'watching', TRUE, 'https://cdn.myanimelist.net/images/anime/1244/138851l.jpg'),
-('anime-3', 'Attack on Titan', 25, 25, 8.6, 'completed', TRUE, 'https://cdn.myanimelist.net/images/anime/10/47347l.jpg'),
-('anime-4', 'Hunter x Hunter', 148, 36, 9.0, 'watching', TRUE, 'https://cdn.myanimelist.net/images/anime/1337/99013l.jpg');
+INSERT INTO anime_lists (id, title, episodes, watched, rating, status, favorite, genre, studio, image_url) VALUES
+('anime-1', 'Naruto', 220, 84, 8.0, 'watching', TRUE, 'Ninja Adventure', 'Pierrot', 'https://cdn.myanimelist.net/images/anime/1141/142503l.jpg'),
+('anime-2', 'One Piece', 1122, 208, 8.7, 'watching', TRUE, 'Pirate Adventure', 'Toei Animation', 'https://cdn.myanimelist.net/images/anime/1244/138851l.jpg'),
+('anime-3', 'Attack on Titan', 25, 25, 8.6, 'completed', TRUE, 'Dark Fantasy', 'Wit Studio', 'https://cdn.myanimelist.net/images/anime/10/47347l.jpg'),
+('anime-4', 'Hunter x Hunter', 148, 36, 9.0, 'watching', TRUE, 'Action Adventure', 'Madhouse', 'https://cdn.myanimelist.net/images/anime/1337/99013l.jpg');
 
 INSERT INTO comments (id, author, target, message, reaction, created_at_ms) VALUES
 ('comment-1', 'Mika', 'Naruto', 'The Naruto room needs a Team 7 rewatch after this arc.', 'Ninja Hype', 1779770000000),

@@ -67,6 +67,8 @@ def anime_to_json(row):
         "rating": float(row["rating"]),
         "status": row["status"],
         "favorite": bool(row["favorite"]),
+        "genre": row.get("genre", "Shonen"),
+        "studio": row.get("studio", "Studio TBA"),
         "imageUrl": row.get("image_url"),
     }
 
@@ -174,8 +176,8 @@ def replace_state():
         )
         cursor.executemany(
             """
-            INSERT INTO anime_lists (id, title, episodes, watched, rating, status, favorite, image_url)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO anime_lists (id, title, episodes, watched, rating, status, favorite, genre, studio, image_url)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             [
                 (
@@ -186,6 +188,8 @@ def replace_state():
                     float(item.get("rating", 0)),
                     item.get("status", "planned"),
                     bool(item.get("favorite", False)),
+                    item.get("genre", "Shonen"),
+                    item.get("studio", "Studio TBA"),
                     item.get("imageUrl"),
                 )
                 for item in anime
@@ -304,10 +308,10 @@ def create_anime():
     anime_id = data.get("id", new_id("anime"))
     execute(
         """
-        INSERT INTO anime_lists (id, title, episodes, watched, rating, status, favorite, image_url)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO anime_lists (id, title, episodes, watched, rating, status, favorite, genre, studio, image_url)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
-        (anime_id, data["title"], int(data["episodes"]), int(data.get("watched", 0)), float(data.get("rating", 0)), data.get("status", "planned"), bool(data.get("favorite", False)), data.get("imageUrl")),
+        (anime_id, data["title"], int(data["episodes"]), int(data.get("watched", 0)), float(data.get("rating", 0)), data.get("status", "planned"), bool(data.get("favorite", False)), data.get("genre", "Shonen"), data.get("studio", "Studio TBA"), data.get("imageUrl")),
     )
     return ok(anime_to_json(fetch_one("SELECT * FROM anime_lists WHERE id = %s", (anime_id,))), 201)
 
@@ -318,10 +322,10 @@ def update_anime(anime_id):
     execute(
         """
         UPDATE anime_lists
-        SET title = %s, episodes = %s, watched = %s, rating = %s, status = %s, favorite = %s, image_url = %s
+        SET title = %s, episodes = %s, watched = %s, rating = %s, status = %s, favorite = %s, genre = %s, studio = %s, image_url = %s
         WHERE id = %s
         """,
-        (data["title"], int(data["episodes"]), int(data.get("watched", 0)), float(data.get("rating", 0)), data.get("status", "planned"), bool(data.get("favorite", False)), data.get("imageUrl"), anime_id),
+        (data["title"], int(data["episodes"]), int(data.get("watched", 0)), float(data.get("rating", 0)), data.get("status", "planned"), bool(data.get("favorite", False)), data.get("genre", "Shonen"), data.get("studio", "Studio TBA"), data.get("imageUrl"), anime_id),
     )
     return ok(anime_to_json(fetch_one("SELECT * FROM anime_lists WHERE id = %s", (anime_id,))))
 
