@@ -220,6 +220,7 @@ function renderAnime() {
     .filter((item) => activeAnimeFilter === "all" || (activeAnimeFilter === "favorite" ? item.favorite : item.status === activeAnimeFilter))
     .filter((item) => item.title.toLowerCase().includes(query));
 
+  renderAnimeSummary();
   $("#animeGrid").innerHTML = anime.map((item, index) => {
     const progress = Math.min(100, Math.round((item.watched / item.episodes) * 100));
     return `
@@ -250,6 +251,22 @@ function renderAnime() {
       </article>
     `;
   }).join("") || emptyState("No anime match this filter.");
+}
+
+function renderAnimeSummary() {
+  const summary = [
+    ["Total", state.anime.length],
+    ["Favorites", state.anime.filter((item) => item.favorite).length],
+    ["Watching", state.anime.filter((item) => item.status === "watching").length],
+    ["Completed", state.anime.filter((item) => item.status === "completed").length],
+    ["Planned", state.anime.filter((item) => item.status === "planned").length]
+  ];
+  $("#animeSummary").innerHTML = summary.map(([label, value]) => `
+    <article>
+      <span>${label}</span>
+      <strong>${value}</strong>
+    </article>
+  `).join("");
 }
 
 function recommendationScore(item) {
