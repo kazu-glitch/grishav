@@ -819,6 +819,29 @@ dialog::backdrop {
   resize: vertical;
 }
 
+.auth-card {
+  width: min(760px, calc(100vw - 32px));
+}
+
+.auth-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.auth-grid section {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.auth-grid h4 {
+  margin: 0;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -912,7 +935,8 @@ dialog::backdrop {
   .room-card,
   .schedule-item,
   .profile-card,
-  .quick-chat {
+  .quick-chat,
+  .auth-grid {
     grid-template-columns: 1fr;
   }
 

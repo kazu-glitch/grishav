@@ -63,6 +63,7 @@
           <button id="themeToggle" class="icon-btn" type="button" aria-label="Toggle dark mode">
             <span>☾</span>
           </button>
+          <button class="secondary-btn auth-btn" type="button" data-open-modal="authModal">Login</button>
           <button class="primary-btn" type="button" data-open-modal="roomModal">Create Room</button>
         </div>
       </header>
@@ -323,6 +324,32 @@
         </select>
       </label>
       <button class="primary-btn" type="submit">Save Comment</button>
+    </form>
+  </dialog>
+
+  <dialog id="authModal">
+    <form method="dialog" class="modal-card auth-card">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">User access</p>
+          <h3>Login or Sign Up</h3>
+        </div>
+        <button class="icon-btn close-modal" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="auth-grid">
+        <section>
+          <h4>Returning Host</h4>
+          <label>Email <input type="email" placeholder="kazu@example.com"></label>
+          <label>Password <input type="password" placeholder="Your password"></label>
+          <button class="primary-btn" type="button">Login</button>
+        </section>
+        <section>
+          <h4>New OtakuHub User</h4>
+          <label>Display name <input type="text" placeholder="Kazu"></label>
+          <label>Email <input type="email" placeholder="you@example.com"></label>
+          <button class="secondary-btn" type="button">Create Account</button>
+        </section>
+      </div>
     </form>
   </dialog>
 
