@@ -39,6 +39,7 @@ app.js               Static frontend logic
 ## Documentation
 
 - [API Reference](docs/API_REFERENCE.md)
+- [Database ERD](docs/DATABASE_ERD.md)
 
 ## Run The Flask Version
 
