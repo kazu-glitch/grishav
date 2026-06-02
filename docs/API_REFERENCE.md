@@ -28,6 +28,22 @@ PUT /api/state
 
 Replaces the demo app state in MySQL. The frontend uses this route when saving dashboard changes.
 
+## Users And Profile
+
+```http
+GET /api/users
+GET /api/users/<user_id>
+GET /api/profile
+```
+
+User records include:
+
+- display name
+- username
+- bio
+- avatar URL
+- platform role
+
 ## Watch Rooms
 
 ```http

@@ -98,6 +98,9 @@ PUT    /api/schedules/<schedule_id>
 DELETE /api/schedules/<schedule_id>
 
 GET    /api/news
+GET    /api/users
+GET    /api/users/<user_id>
+GET    /api/profile
 ```
 
 The frontend loads from `/api/state` and saves dashboard changes back to MySQL through `PUT /api/state`.

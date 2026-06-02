@@ -94,6 +94,17 @@ def schedule_to_json(row):
     }
 
 
+def user_to_json(row):
+    return {
+        "id": row["id"],
+        "displayName": row["display_name"],
+        "username": row["username"],
+        "bio": row["bio"],
+        "avatarUrl": row["avatar_url"],
+        "role": row["role"],
+    }
+
+
 def notification_to_json(row):
     return row["message"]
 
@@ -118,6 +129,27 @@ def health():
 @app.get("/api/news")
 def get_news():
     return ok(NEWS)
+
+
+@app.get("/api/users")
+def list_users():
+    return ok([user_to_json(row) for row in fetch_all("SELECT * FROM users ORDER BY created_at DESC")])
+
+
+@app.get("/api/users/<user_id>")
+def get_user(user_id):
+    user = fetch_one("SELECT * FROM users WHERE id = %s", (user_id,))
+    if not user:
+        return ok({"error": "User not found"}, 404)
+    return ok(user_to_json(user))
+
+
+@app.get("/api/profile")
+def get_profile():
+    user = fetch_one("SELECT * FROM users ORDER BY created_at LIMIT 1")
+    if not user:
+        return ok({"error": "No profile found"}, 404)
+    return ok(user_to_json(user))
 
 
 @app.get("/api/state")
