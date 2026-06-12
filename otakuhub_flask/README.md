@@ -2,6 +2,8 @@
 
 Full-stack anime watch party platform with a Flask API, MySQL database, and the OtakuHub frontend served from Flask. The demo data uses Naruto, One Piece, Attack on Titan, and Hunter x Hunter poster URLs from MyAnimeList data returned by Jikan, plus genre and studio metadata for richer anime cards.
 
+The Flask frontend uses the same warm orange/yellow UI theme as the static dashboard.
+
 ## Folder Structure
 
 ```text
