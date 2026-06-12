@@ -10,16 +10,16 @@
   color-scheme: dark;
   --font-display: "CyberTechno", "Segoe UI", system-ui, sans-serif;
   --font-body: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --bg: #050505;
-  --surface: #101010;
-  --surface-2: #181818;
-  --surface-3: #24210f;
-  --text: #f6f8fb;
-  --muted: #b8b2a0;
-  --line: rgba(255, 214, 69, 0.18);
-  --primary: #f7c800;
-  --primary-2: #ff9f1c;
-  --accent: #ffd645;
+  --bg: #140900;
+  --surface: #241005;
+  --surface-2: #321806;
+  --surface-3: #5a2a05;
+  --text: #fff8e6;
+  --muted: #f2c982;
+  --line: rgba(255, 190, 64, 0.28);
+  --primary: #ffd23f;
+  --primary-2: #ff7a1a;
+  --accent: #ffb000;
   --green: #9fd85c;
   --yellow: #ffd645;
   --danger: #ff5d66;
@@ -28,14 +28,14 @@
 
 :root.light {
   color-scheme: light;
-  --bg: #fff8df;
-  --surface: #ffffff;
-  --surface-2: #fff1b8;
-  --surface-3: #ffe585;
-  --text: #191407;
-  --muted: #6f654d;
-  --line: rgba(48, 37, 0, 0.14);
-  --shadow: 0 20px 60px rgba(49, 67, 93, 0.14);
+  --bg: #fff4c2;
+  --surface: #fff8dc;
+  --surface-2: #ffe28a;
+  --surface-3: #ffbd45;
+  --text: #2a1300;
+  --muted: #805014;
+  --line: rgba(176, 84, 0, 0.22);
+  --shadow: 0 20px 60px rgba(174, 88, 0, 0.18);
 }
 
 * {
@@ -45,7 +45,9 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--bg);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 176, 0, 0.2), transparent 30%),
+    linear-gradient(145deg, var(--bg), #2c1300 58%, #4d2100);
   color: var(--text);
   font-family: var(--font-body);
   font-size: 16.5px;
@@ -82,7 +84,8 @@ img {
   gap: 28px;
   padding: 28px 20px;
   border-right: 1px solid var(--line);
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 88%, transparent), color-mix(in srgb, var(--surface) 94%, transparent));
 }
 
 .brand,
@@ -326,8 +329,8 @@ img {
   border: 1px solid var(--line);
   border-radius: 8px;
   background:
-    radial-gradient(circle at 12% 10%, rgba(255, 214, 69, 0.24), transparent 32%),
-    linear-gradient(135deg, color-mix(in srgb, var(--surface-2) 92%, #000), var(--surface));
+    radial-gradient(circle at 12% 10%, rgba(255, 210, 63, 0.3), transparent 32%),
+    linear-gradient(135deg, color-mix(in srgb, var(--surface-3) 72%, #ff7a1a), var(--surface));
 }
 
 .hero-copy {
@@ -734,7 +737,8 @@ img {
 }
 
 .admin-grid {
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 560px;
 }
 
 .chat-feed {
@@ -834,22 +838,23 @@ dialog::backdrop {
 }
 
 .auth-card {
-  width: min(760px, calc(100vw - 32px));
+  width: min(520px, calc(100vw - 32px));
 }
 
 .auth-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  grid-template-columns: 1fr;
+  gap: 14px;
 }
 
 .auth-grid section {
   display: grid;
   gap: 12px;
-  padding: 16px;
+  padding: 18px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--surface-2);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--surface-2) 88%, #ff7a1a), color-mix(in srgb, var(--surface) 92%, #ffd23f));
 }
 
 .auth-grid h4 {
