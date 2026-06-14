@@ -1,6 +1,7 @@
 import json
 import time
 import uuid
+from datetime import datetime, timezone
 
 from flask import Flask, jsonify, render_template, request
 from mysql.connector import Error
@@ -123,7 +124,12 @@ def index():
 def health():
     with get_connection() as connection:
         connection.ping(reconnect=True)
-    return ok({"status": "ok"})
+    return ok({
+        "status": "ok",
+        "service": "otakuhub-flask",
+        "database": "connected",
+        "checkedAt": datetime.now(timezone.utc).isoformat(),
+    })
 
 
 @app.get("/api/news")

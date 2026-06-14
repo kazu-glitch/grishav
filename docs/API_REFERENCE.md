@@ -14,6 +14,17 @@ GET /api/health
 
 Checks whether Flask can connect to MySQL.
 
+Successful responses include the service name, database connection status, and UTC check time.
+
+```json
+{
+  "status": "ok",
+  "service": "otakuhub-flask",
+  "database": "connected",
+  "checkedAt": "2026-06-14T00:00:00+00:00"
+}
+```
+
 ## Full App State
 
 ```http
