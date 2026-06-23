@@ -45,6 +45,8 @@ pip install -r requirements.txt
 copy .env.example .env
 ```
 
+Set a unique `SECRET_KEY` in `.env` before using sessions outside local development.
+
 4. Create and seed the MySQL database:
 
 ```bash
