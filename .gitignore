@@ -18,3 +18,5 @@ ocr_*
 extract_exam_frames.js
 make_exam_pdf*.py
 ST5039CMD_*.pdf
+otakuhub_flask/static/uploads/*
+!otakuhub_flask/static/uploads/.gitkeep
