@@ -722,7 +722,15 @@ img {
   margin-bottom: 18px;
 }
 
-.anime-summary article {
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.anime-summary article,
+.insight-card {
   min-height: 74px;
   padding: 14px;
   border: 1px solid var(--line);
@@ -730,7 +738,8 @@ img {
   background: var(--surface);
 }
 
-.anime-summary span {
+.anime-summary span,
+.insight-card span {
   display: block;
   color: var(--muted);
   font-size: 0.76rem;
@@ -738,11 +747,24 @@ img {
   text-transform: uppercase;
 }
 
-.anime-summary strong {
+.anime-summary strong,
+.insight-card strong {
   display: block;
   margin-top: 8px;
   color: var(--accent);
   font-size: 1.5rem;
+}
+
+.insight-card strong {
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.insight-card p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
 }
 
 .tab {
@@ -1162,7 +1184,8 @@ dialog::backdrop {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .anime-summary {
+  .anime-summary,
+  .insight-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1190,6 +1213,7 @@ dialog::backdrop {
 @media (max-width: 480px) {
   .stats-grid,
   .anime-summary,
+  .insight-grid,
   .form-row,
   .nav {
     grid-template-columns: 1fr;

@@ -209,6 +209,7 @@ function render() {
   renderStats();
   renderRooms();
   renderAnime();
+  renderAnimeInsights();
   renderSchedules();
   renderComments();
   renderDiscovery();
@@ -320,6 +321,36 @@ function renderAnimeSummary() {
     <article>
       <span>${label}</span>
       <strong>${value}</strong>
+    </article>
+  `).join("");
+}
+
+function renderAnimeInsights() {
+  const topRated = [...state.anime].sort((a, b) => Number(b.rating) - Number(a.rating))[0];
+  const nextToFinish = [...state.anime]
+    .filter((item) => Number(item.watched) < Number(item.episodes))
+    .sort((a, b) => (Number(b.watched) / Number(b.episodes)) - (Number(a.watched) / Number(a.episodes)))[0];
+  const reactionTotals = state.rooms.reduce((totals, room) => {
+    Object.entries(room.reactions || {}).forEach(([key, value]) => {
+      totals[key] = (totals[key] || 0) + Number(value);
+    });
+    return totals;
+  }, {});
+  const topReaction = Object.entries(reactionTotals).sort((a, b) => b[1] - a[1])[0];
+  const openRooms = state.rooms.filter((room) => room.status !== "Private").length;
+
+  const cards = [
+    ["Top rated", topRated ? `${topRated.title} (${topRated.rating}/10)` : "No ratings yet", "Best score in the current library."],
+    ["Finish next", nextToFinish ? `${nextToFinish.title} - ${nextToFinish.episodes - nextToFinish.watched} episodes left` : "All caught up", "Closest title to completion."],
+    ["Fan reaction", topReaction ? `${topReaction[0]} (${topReaction[1]})` : "No reactions yet", "Most used watch room reaction."],
+    ["Open rooms", `${openRooms} available`, "Live or scheduled rooms people can join."]
+  ];
+
+  $("#animeInsights").innerHTML = cards.map(([title, value, text]) => `
+    <article class="insight-card">
+      <span>${title}</span>
+      <strong>${value}</strong>
+      <p>${text}</p>
     </article>
   `).join("");
 }
