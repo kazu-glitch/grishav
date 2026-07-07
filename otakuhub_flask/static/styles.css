@@ -506,6 +506,10 @@ img {
   grid-column: 1 / -1;
 }
 
+.discovery-panel {
+  grid-column: 1 / -1;
+}
+
 .section-head {
   justify-content: space-between;
   gap: 14px;
@@ -526,7 +530,9 @@ img {
 .schedule-list,
 .news-list,
 .activity-list,
-.chat-feed {
+.chat-feed,
+.discovery-grid,
+.discovery-list {
   display: grid;
   gap: 12px;
 }
@@ -789,8 +795,61 @@ img {
 .news-item,
 .activity-item,
 .chat-message,
-.admin-card {
+.admin-card,
+.discovery-rail {
   padding: 14px;
+}
+
+.discovery-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.discovery-rail {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.discovery-rail h4 {
+  margin: 0 0 12px;
+}
+
+.discovery-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 58px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+
+.discovery-item span,
+.discovery-item small {
+  display: grid;
+  min-width: 0;
+}
+
+.discovery-item strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.discovery-item small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.discovery-item b {
+  color: var(--accent);
+  font-size: 0.9rem;
 }
 
 .profile-card {
@@ -1065,7 +1124,8 @@ dialog::backdrop {
 
   .dashboard-grid,
   .calendar-layout,
-  .profile-layout {
+  .profile-layout,
+  .discovery-grid {
     grid-template-columns: 1fr;
   }
 }

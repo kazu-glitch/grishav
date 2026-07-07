@@ -53,6 +53,33 @@ NEWS = [
     },
 ]
 
+DISCOVERY_RAILS = [
+    {
+        "title": "Trending with hosts",
+        "items": [
+            {"title": "Frieren: Beyond Journey's End", "tag": "Fantasy", "match": 96},
+            {"title": "Demon Slayer: Hashira Training Arc", "tag": "Action", "match": 91},
+            {"title": "Jujutsu Kaisen", "tag": "Supernatural", "match": 89},
+        ],
+    },
+    {
+        "title": "Good for group nights",
+        "items": [
+            {"title": "Haikyu!!", "tag": "Sports", "match": 94},
+            {"title": "Spy x Family", "tag": "Comedy", "match": 90},
+            {"title": "Mob Psycho 100", "tag": "Action Comedy", "match": 88},
+        ],
+    },
+    {
+        "title": "Short watch commitments",
+        "items": [
+            {"title": "Cyberpunk: Edgerunners", "tag": "Sci-fi", "match": 87},
+            {"title": "Odd Taxi", "tag": "Mystery", "match": 85},
+            {"title": "Erased", "tag": "Thriller", "match": 83},
+        ],
+    },
+]
+
 
 def new_id(prefix):
     return f"{prefix}-{uuid.uuid4()}"
@@ -196,6 +223,11 @@ def health():
 @app.get("/api/news")
 def get_news():
     return ok(NEWS)
+
+
+@app.get("/api/discovery")
+def get_discovery():
+    return ok(DISCOVERY_RAILS)
 
 
 @app.get("/api/csrf-token")

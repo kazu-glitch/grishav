@@ -31,6 +31,33 @@ const news = [
   }
 ];
 
+const discoveryRails = [
+  {
+    title: "Trending with hosts",
+    items: [
+      { title: "Frieren: Beyond Journey's End", tag: "Fantasy", match: 96 },
+      { title: "Demon Slayer: Hashira Training Arc", tag: "Action", match: 91 },
+      { title: "Jujutsu Kaisen", tag: "Supernatural", match: 89 }
+    ]
+  },
+  {
+    title: "Good for group nights",
+    items: [
+      { title: "Haikyu!!", tag: "Sports", match: 94 },
+      { title: "Spy x Family", tag: "Comedy", match: 90 },
+      { title: "Mob Psycho 100", tag: "Action Comedy", match: 88 }
+    ]
+  },
+  {
+    title: "Short watch commitments",
+    items: [
+      { title: "Cyberpunk: Edgerunners", tag: "Sci-fi", match: 87 },
+      { title: "Odd Taxi", tag: "Mystery", match: 85 },
+      { title: "Erased", tag: "Thriller", match: 83 }
+    ]
+  }
+];
+
 const seedState = {
   rooms: [
     { id: "room-1", name: "Hidden Leaf Watch Room", anime: "Naruto", episode: 19, capacity: 42, viewers: 31, status: "Live", imageUrl: animePosters.naruto, reactions: { "Ninja Hype": 24, "Nen Boost": 6 } },
@@ -58,6 +85,7 @@ const seedState = {
     "Ren bookmarked One Piece Ep 208.",
     "Admin review queue has 3 fresh comments."
   ],
+  discovery: discoveryRails,
   theme: "dark"
 };
 
@@ -183,6 +211,7 @@ function render() {
   renderAnime();
   renderSchedules();
   renderComments();
+  renderDiscovery();
   renderNews();
   renderProfile();
   renderAdmin();
@@ -350,6 +379,26 @@ function renderComments() {
       </div>
     </article>
   `).join("") || emptyState("No chat messages yet.");
+}
+
+function renderDiscovery() {
+  const rails = state.discovery?.length ? state.discovery : discoveryRails;
+  $("#discoveryRails").innerHTML = rails.map((rail) => `
+    <article class="discovery-rail">
+      <h4>${rail.title}</h4>
+      <div class="discovery-list">
+        ${rail.items.map((item) => `
+          <button class="discovery-item" type="button" data-discovery-title="${item.title}">
+            <span>
+              <strong>${item.title}</strong>
+              <small>${item.tag}</small>
+            </span>
+            <b>${item.match}%</b>
+          </button>
+        `).join("")}
+      </div>
+    </article>
+  `).join("");
 }
 
 function renderNews() {
@@ -816,6 +865,7 @@ function handleDelegatedActions(event) {
   if (dataset.editComment) editComment(dataset.editComment);
   if (dataset.deleteComment) removeItem("comments", dataset.deleteComment, "Comment deleted.");
   if (dataset.jikanTitle) applyJikanResult(target);
+  if (dataset.discoveryTitle) startAnimeFromDiscovery(dataset.discoveryTitle);
 }
 
 function removeItem(collection, id, message) {
@@ -857,6 +907,17 @@ function bookmarkAnime(id) {
   saveState();
   render();
   notify(`${anime.title} episode bookmarked.`);
+}
+
+function startAnimeFromDiscovery(title) {
+  resetForm($("#animeForm"), "Add Anime");
+  $("#animeModalTitle").textContent = "Add Anime";
+  $("#animeForm").elements.title.value = title;
+  $("#animeForm").elements.status.value = "planned";
+  $("#animeForm").elements.episodes.value = 12;
+  $("#animeForm").elements.watched.value = 0;
+  $("#animeForm").elements.rating.value = 8.0;
+  openModal("animeModal");
 }
 
 function setView(view) {
