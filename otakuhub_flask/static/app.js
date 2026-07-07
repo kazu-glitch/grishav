@@ -262,6 +262,7 @@ function roomCard(room, index, full) {
         <p>${room.anime} - Episode ${room.episode}</p>
         ${full ? `<div class="reaction-row">${reactionButtons}</div>
         <div class="card-actions">
+          <button type="button" data-join-room="${room.id}">Join</button>
           <button type="button" data-edit-room="${room.id}">Edit</button>
           <button type="button" data-delete-room="${room.id}">Delete</button>
         </div>` : ""}
@@ -884,6 +885,7 @@ function handleDelegatedActions(event) {
   if (dataset.editRoom) editRoom(dataset.editRoom);
   if (dataset.deleteRoom) removeItem("rooms", dataset.deleteRoom, "Watch room deleted.");
   if (dataset.reactRoom) reactToRoom(dataset.reactRoom, dataset.reaction);
+  if (dataset.joinRoom) joinRoom(dataset.joinRoom);
 
   if (dataset.editAnime) editAnime(dataset.editAnime);
   if (dataset.deleteAnime) removeItem("anime", dataset.deleteAnime, "Anime removed from list.");
@@ -915,6 +917,19 @@ function reactToRoom(id, reaction) {
   saveState();
   render();
   notify(`${reaction} reaction added.`);
+}
+
+function joinRoom(id) {
+  const room = state.rooms.find((item) => item.id === id);
+  if (!room) return;
+  state.rooms = state.rooms.map((item) => {
+    if (item.id !== id) return item;
+    const viewers = Math.min(Number(item.capacity), Number(item.viewers || 0) + 1);
+    return { ...item, viewers, status: item.status === "Private" ? "Private" : "Live" };
+  });
+  saveState();
+  render();
+  notify(`Joined ${room.name}.`);
 }
 
 function progressAnime(id) {
