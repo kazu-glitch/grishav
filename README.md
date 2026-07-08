@@ -111,7 +111,7 @@ http://127.0.0.1:5000
 Demo login:
 
 ```text
-mika@example.com / otakuhub123
+grishav@example.com / otakuhub123
 ```
 
 ## Database Notes

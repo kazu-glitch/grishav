@@ -1,7 +1,7 @@
 USE otakuhub;
 
 INSERT INTO users (id, display_name, username, email, password_hash, bio, avatar_url, role) VALUES
-('user-1', 'Mika Tachibana', 'mika', 'mika@example.com', 'scrypt:32768:8:1$7GaEqkP35tHb6hFM$4ed7ccac1b5ecfd46a1135694951202c87bd831f4fd65e3eded2991e2329836559dfc0a968f73338e93103790db22fedf4981f76829430c8f2609b904b84980c', 'Room host, seasonal tracker, and spoiler-free chat moderator.', '/static/assets/avatar.png', 'admin');
+('user-1', 'Grishav Rimal', 'grishav', 'grishav@example.com', 'scrypt:32768:8:1$7GaEqkP35tHb6hFM$4ed7ccac1b5ecfd46a1135694951202c87bd831f4fd65e3eded2991e2329836559dfc0a968f73338e93103790db22fedf4981f76829430c8f2609b904b84980c', 'Admin host, seasonal tracker, and spoiler-free chat moderator.', '/static/assets/avatar.png', 'admin');
 
 INSERT INTO watch_rooms (id, name, anime, episode, capacity, viewers, status, image_url, reactions) VALUES
 ('room-1', 'Hidden Leaf Watch Room', 'Naruto', 19, 42, 31, 'Live', 'https://cdn.myanimelist.net/images/anime/1141/142503l.jpg', JSON_OBJECT('Ninja Hype', 24, 'Nen Boost', 6)),
@@ -15,7 +15,7 @@ INSERT INTO anime_lists (id, title, episodes, watched, rating, status, favorite,
 ('anime-4', 'Hunter x Hunter', 148, 36, 9.0, 'watching', TRUE, 'Action Adventure', 'Madhouse', 'https://cdn.myanimelist.net/images/anime/1337/99013l.jpg');
 
 INSERT INTO comments (id, author, target, message, reaction, created_at_ms) VALUES
-('comment-1', 'Mika', 'Naruto', 'The Naruto room needs a Team 7 rewatch after this arc.', 'Ninja Hype', 1779770000000),
+('comment-1', 'Grishav', 'Naruto', 'The Naruto room needs a Team 7 rewatch after this arc.', 'Ninja Hype', 1779770000000),
 ('comment-2', 'Ren', 'One Piece', 'Grand Line nights are perfect for long watch parties.', 'Pirate Crew', 1779766000000),
 ('comment-3', 'Aiko', 'Attack on Titan', 'That reveal deserves a spoiler-free review thread.', 'Titan Shock', 1779760000000);
 

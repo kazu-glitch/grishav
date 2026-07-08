@@ -1,7 +1,9 @@
 import pytest
+from urllib.error import URLError
 from werkzeug.security import check_password_hash
 
 import auth
+import app as app_module
 from app import create_app
 
 pytestmark = pytest.mark.test
@@ -94,9 +96,9 @@ def test_login_rejects_bad_password(client):
     client.post(
         "/api/auth/register",
         json={
-            "displayName": "Mika",
-            "username": "mika",
-            "email": "mika@example.com",
+            "displayName": "Grishav Rimal",
+            "username": "grishav",
+            "email": "grishav@example.com",
             "password": "otakuhub123",
         },
         headers=csrf_headers(client),
@@ -104,7 +106,7 @@ def test_login_rejects_bad_password(client):
 
     response = client.post(
         "/api/auth/login",
-        json={"identifier": "mika@example.com", "password": "wrong-password"},
+        json={"identifier": "grishav@example.com", "password": "wrong-password"},
         headers=csrf_headers(client),
     )
 
@@ -152,3 +154,17 @@ def test_api_write_requires_login(client):
 
     assert response.status_code == 401
     assert response.get_json()["error"] == "Login required for this action"
+
+
+def test_jikan_search_uses_local_fallback(client, monkeypatch):
+    def fake_urlopen(*args, **kwargs):
+        raise URLError("offline")
+
+    monkeypatch.setattr(app_module, "urlopen", fake_urlopen)
+
+    response = client.get("/api/jikan/search?q=naruto")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["source"] == "local-fallback"
+    assert payload["items"][0]["title"] == "Naruto"

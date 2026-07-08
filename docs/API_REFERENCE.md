@@ -57,12 +57,12 @@ Example login body:
 
 ```json
 {
-  "identifier": "mika@example.com",
+  "identifier": "grishav@example.com",
   "password": "otakuhub123"
 }
 ```
 
-The demo account is `mika@example.com` / `otakuhub123`.
+The demo admin account is `grishav@example.com` / `otakuhub123`.
 
 ## Users And Profile
 

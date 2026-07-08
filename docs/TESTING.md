@@ -32,7 +32,7 @@ pip install -r requirements.txt
 - Start MySQL and run `python init_db.py`.
 - Start Flask with `flask run`.
 - Open `http://127.0.0.1:5000`.
-- Login with `mika@example.com` and `otakuhub123`.
+- Login with `grishav@example.com` and `otakuhub123`.
 - Add a watch room and confirm it remains after refresh.
 - Add an anime manually and with Jikan search.
 - Upload a valid image and confirm the preview updates.

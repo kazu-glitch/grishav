@@ -38,6 +38,49 @@ ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
 JIKAN_CACHE = {}
 JIKAN_TTL = 900
 
+JIKAN_FALLBACK = [
+    {
+        "title": "Naruto",
+        "episodes": 220,
+        "rating": 8.0,
+        "status": "planned",
+        "genre": "Ninja Adventure",
+        "studio": "Pierrot",
+        "imageUrl": "https://cdn.myanimelist.net/images/anime/1141/142503l.jpg",
+        "malUrl": "https://myanimelist.net/anime/20/Naruto",
+    },
+    {
+        "title": "One Piece",
+        "episodes": 1122,
+        "rating": 8.7,
+        "status": "planned",
+        "genre": "Pirate Adventure",
+        "studio": "Toei Animation",
+        "imageUrl": "https://cdn.myanimelist.net/images/anime/1244/138851l.jpg",
+        "malUrl": "https://myanimelist.net/anime/21/One_Piece",
+    },
+    {
+        "title": "Attack on Titan",
+        "episodes": 25,
+        "rating": 8.6,
+        "status": "planned",
+        "genre": "Dark Fantasy",
+        "studio": "Wit Studio",
+        "imageUrl": "https://cdn.myanimelist.net/images/anime/10/47347l.jpg",
+        "malUrl": "https://myanimelist.net/anime/16498/Shingeki_no_Kyojin",
+    },
+    {
+        "title": "Hunter x Hunter",
+        "episodes": 148,
+        "rating": 9.0,
+        "status": "planned",
+        "genre": "Action Adventure",
+        "studio": "Madhouse",
+        "imageUrl": "https://cdn.myanimelist.net/images/anime/1337/99013l.jpg",
+        "malUrl": "https://myanimelist.net/anime/11061/Hunter_x_Hunter_2011",
+    },
+]
+
 NEWS = [
     {
         "title": "Spring simulcast slate locks in three premiere windows",
@@ -198,6 +241,15 @@ def notification_to_json(row):
     return row["message"]
 
 
+def fallback_jikan_items(query):
+    normalized = query.lower()
+    matches = [
+        item for item in JIKAN_FALLBACK
+        if normalized in item["title"].lower() or normalized in item["genre"].lower()
+    ]
+    return matches or JIKAN_FALLBACK[:3]
+
+
 @app.errorhandler(Error)
 def database_error(error):
     return ok({"error": "Database error", "detail": str(error)}, 500)
@@ -267,7 +319,9 @@ def search_jikan():
         with urlopen(req, timeout=8) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except (OSError, URLError, json.JSONDecodeError) as error:
-        return ok({"error": "Jikan API unavailable", "detail": str(error)}, 502)
+        items = fallback_jikan_items(query)
+        JIKAN_CACHE[cache_key] = {"created_at": time.time(), "items": items}
+        return ok({"items": items, "source": "local-fallback", "detail": str(error)})
 
     items = []
     for anime in payload.get("data", []):

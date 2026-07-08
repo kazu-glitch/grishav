@@ -71,7 +71,7 @@ const seedState = {
     { id: "anime-4", title: "Hunter x Hunter", episodes: 148, watched: 36, rating: 9.0, status: "watching", favorite: true, genre: "Action Adventure", studio: "Madhouse", imageUrl: animePosters.hunterXHunter }
   ],
   comments: [
-    { id: "comment-1", author: "Mika", target: "Naruto", message: "The Naruto room needs a Team 7 rewatch after this arc.", reaction: "Ninja Hype", createdAt: Date.now() - 1000 * 60 * 38 },
+    { id: "comment-1", author: "Grishav", target: "Naruto", message: "The Naruto room needs a Team 7 rewatch after this arc.", reaction: "Ninja Hype", createdAt: Date.now() - 1000 * 60 * 38 },
     { id: "comment-2", author: "Ren", target: "One Piece", message: "Grand Line nights are perfect for long watch parties.", reaction: "Pirate Crew", createdAt: Date.now() - 1000 * 60 * 92 },
     { id: "comment-3", author: "Aiko", target: "Attack on Titan", message: "That reveal deserves a spoiler-free review thread.", reaction: "Titan Shock", createdAt: Date.now() - 1000 * 60 * 180 }
   ],
@@ -709,7 +709,8 @@ async function searchJikanForAnime() {
     const response = await fetch(`${API_BASE}/jikan/search?q=${encodeURIComponent(query)}`);
     const payload = await response.json();
     if (!response.ok || payload.error) throw new Error(payload.error || "Jikan search failed");
-    results.innerHTML = payload.map((item) => `
+    const items = Array.isArray(payload) ? payload : payload.items || [];
+    results.innerHTML = items.map((item) => `
       <button class="jikan-result" type="button"
         data-jikan-title="${encodeURIComponent(item.title || "")}"
         data-jikan-episodes="${item.episodes || 1}"
@@ -842,7 +843,7 @@ function bindEvents() {
   $("#quickChatForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const message = new FormData(event.currentTarget).get("message");
-    state.comments.unshift({ id: uid("comment"), author: "Mika", target: "Global Chat", message, reaction: "Ninja Hype", createdAt: Date.now() });
+    state.comments.unshift({ id: uid("comment"), author: currentUser?.displayName || "Grishav", target: "Global Chat", message, reaction: "Ninja Hype", createdAt: Date.now() });
     saveState();
     event.currentTarget.reset();
     render();
@@ -944,7 +945,7 @@ function bookmarkAnime(id) {
   if (!anime) return;
   state.comments.unshift({
     id: uid("comment"),
-    author: "Mika",
+    author: currentUser?.displayName || "Grishav",
     target: anime.title,
     message: `Bookmarked episode ${anime.watched || 1} for the next watch party.`,
     reaction: "Ninja Hype",
