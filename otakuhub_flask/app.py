@@ -205,6 +205,17 @@ def anime_to_json(row):
     }
 
 
+def video_to_json(row):
+    return {
+        "id": row["id"],
+        "animeTitle": row["anime_title"],
+        "title": row["title"],
+        "episode": row["episode"],
+        "videoUrl": row["video_url"],
+        "thumbnailUrl": row.get("thumbnail_url"),
+    }
+
+
 def comment_to_json(row):
     return {
         "id": row["id"],
