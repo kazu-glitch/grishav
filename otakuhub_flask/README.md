@@ -105,6 +105,9 @@ POST   /api/anime
 PUT    /api/anime/<anime_id>
 DELETE /api/anime/<anime_id>
 
+GET    /api/videos
+POST   /api/videos
+
 GET    /api/comments
 POST   /api/comments
 PUT    /api/comments/<comment_id>
@@ -124,6 +127,20 @@ GET    /api/jikan/search
 ```
 
 The frontend loads from `/api/state` and saves dashboard changes back to MySQL through `PUT /api/state`. Data-changing API requests require a CSRF token and a logged-in session, except for login/register/logout routes.
+
+### Adding an anime video
+
+Use `POST /api/videos` to save a video link for any anime. Send `animeTitle`, `title`, and an HTTP(S) `videoUrl`; `episode` and `thumbnailUrl` are optional. For example:
+
+```json
+{
+  "animeTitle": "Frieren: Beyond Journey's End",
+  "title": "Episode 1",
+  "episode": 1,
+  "videoUrl": "https://video.example.com/frieren-episode-1",
+  "thumbnailUrl": "https://images.example.com/frieren.jpg"
+}
+```
 
 ## Tests
 

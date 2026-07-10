@@ -168,3 +168,29 @@ def test_jikan_search_uses_local_fallback(client, monkeypatch):
     payload = response.get_json()
     assert payload["source"] == "local-fallback"
     assert payload["items"][0]["title"] == "Naruto"
+
+
+def test_video_submission_rejects_non_web_url(client):
+    client.post(
+        "/api/auth/register",
+        json={
+            "displayName": "Video Host",
+            "username": "videohost",
+            "email": "video@example.com",
+            "password": "secret123",
+        },
+        headers=csrf_headers(client),
+    )
+
+    response = client.post(
+        "/api/videos",
+        json={
+            "animeTitle": "Naruto",
+            "title": "Episode 1",
+            "videoUrl": "file:///local-video.mp4",
+        },
+        headers=csrf_headers(client),
+    )
+
+    assert response.status_code == 400
+    assert "http or https" in response.get_json()["error"]
