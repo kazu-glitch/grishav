@@ -557,6 +557,14 @@ def list_anime():
     return ok([anime_to_json(row) for row in fetch_all("SELECT * FROM anime_lists ORDER BY created_at DESC")])
 
 
+@app.get("/api/videos")
+def list_videos():
+    return ok([
+        video_to_json(row)
+        for row in fetch_all("SELECT * FROM anime_videos ORDER BY created_at DESC")
+    ])
+
+
 @app.post("/api/anime")
 def create_anime():
     data = json_body()
