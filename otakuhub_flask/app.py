@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from datetime import datetime, timezone
 from urllib.error import URLError
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 import uuid
 
@@ -563,6 +563,36 @@ def list_videos():
         video_to_json(row)
         for row in fetch_all("SELECT * FROM anime_videos ORDER BY created_at DESC")
     ])
+
+
+@app.post("/api/videos")
+def create_video():
+    data = json_body()
+    anime_title = data.get("animeTitle", "").strip()
+    title = data.get("title", "").strip()
+    video_url = data.get("videoUrl", "").strip()
+
+    if not anime_title or not title or not video_url:
+        return ok({"error": "Anime title, video title, and video URL are required"}, 400)
+    if urlparse(video_url).scheme not in {"http", "https"}:
+        return ok({"error": "Video URL must use http or https"}, 400)
+
+    video_id = data.get("id", new_id("video"))
+    execute(
+        """
+        INSERT INTO anime_videos (id, anime_title, title, episode, video_url, thumbnail_url)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        """,
+        (
+            video_id,
+            anime_title,
+            title,
+            data.get("episode"),
+            video_url,
+            data.get("thumbnailUrl"),
+        ),
+    )
+    return ok(video_to_json(fetch_one("SELECT * FROM anime_videos WHERE id = %s", (video_id,))), 201)
 
 
 @app.post("/api/anime")
