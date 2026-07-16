@@ -80,9 +80,10 @@ def register():
             email,
             generate_password_hash(password),
             "New OtakuHub member.",
-            "/static/assets/avatar.png",
+            None,
         ),
     )
+    execute("UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = %s", (user_id,))
     preserve_csrf_token()
     session["user_id"] = user_id
     return auth_response({"user": public_user(fetch_one("SELECT * FROM users WHERE id = %s", (user_id,)))}, 201)
@@ -100,6 +101,8 @@ def login():
 
     preserve_csrf_token()
     session["user_id"] = user["id"]
+    execute("UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = %s", (user["id"],))
+    user["last_login_at"] = None
     return auth_response({"user": public_user(user)})
 
 

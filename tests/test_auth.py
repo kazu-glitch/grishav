@@ -34,6 +34,8 @@ def client(monkeypatch):
         return None
 
     def fake_execute(query, params=None):
+        if query.lstrip().upper().startswith("UPDATE USERS SET LAST_LOGIN_AT"):
+            return
         (
             user_id,
             display_name,

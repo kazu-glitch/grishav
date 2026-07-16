@@ -263,9 +263,12 @@ def user_to_json(row):
         "id": row["id"],
         "displayName": row["display_name"],
         "username": row["username"],
+        "email": row.get("email"),
         "bio": row["bio"],
         "avatarUrl": row["avatar_url"],
         "role": row["role"],
+        "createdAt": row.get("created_at").isoformat() if row.get("created_at") else None,
+        "lastLoginAt": row.get("last_login_at").isoformat() if row.get("last_login_at") else None,
     }
 
 
@@ -358,6 +361,30 @@ def upload_image():
     return ok({"url": f"/static/uploads/{filename}", "filename": filename}, 201)
 
 
+@app.put("/api/profile")
+def update_profile():
+    user = current_user()
+    if not user:
+        return ok({"error": "Login required"}, 401)
+
+    data = json_body()
+    display_name = str(data.get("displayName", user["display_name"])).strip()
+    bio = str(data.get("bio", user.get("bio") or "")).strip()
+    avatar_url = data.get("avatarUrl", user.get("avatar_url"))
+    if len(display_name) < 2 or len(display_name) > 120:
+        return ok({"error": "Display name must be 2-120 characters."}, 400)
+    if len(bio) > 1000:
+        return ok({"error": "Bio must be 1000 characters or fewer."}, 400)
+    if avatar_url and not str(avatar_url).startswith("/static/uploads/"):
+        return ok({"error": "Use an image uploaded through OtakuHub."}, 400)
+
+    execute(
+        "UPDATE users SET display_name = %s, bio = %s, avatar_url = %s WHERE id = %s",
+        (display_name, bio, avatar_url, user["id"]),
+    )
+    return ok(user_to_json(fetch_one("SELECT * FROM users WHERE id = %s", (user["id"],))))
+
+
 @app.get("/api/jikan/search")
 def search_jikan():
     query = request.args.get("q", "").strip()
@@ -408,6 +435,9 @@ def list_users():
 
 @app.get("/api/users/<user_id>")
 def get_user(user_id):
+    access_error = admin_required()
+    if access_error:
+        return access_error
     user = fetch_one("SELECT * FROM users WHERE id = %s", (user_id,))
     if not user:
         return ok({"error": "User not found"}, 404)
@@ -759,4 +789,4 @@ def delete_schedule(schedule_id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=os.getenv("FLASK_DEBUG", "0") == "1")
