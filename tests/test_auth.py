@@ -69,6 +69,13 @@ def csrf_headers(client):
     return {"X-CSRFToken": token}
 
 
+def test_csrf_token_response_is_not_cacheable(client):
+    response = client.get("/api/csrf-token")
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store, max-age=0"
+
+
 def test_register_creates_user_and_session(client):
     response = client.post(
         "/api/auth/register",

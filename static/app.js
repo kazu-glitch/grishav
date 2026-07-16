@@ -138,7 +138,10 @@ function apiHeaders(extra = {}) {
 
 async function loadCsrfToken() {
   try {
-    const response = await fetch(`${API_BASE}/csrf-token`);
+    const response = await fetch(`${API_BASE}/csrf-token`, {
+      cache: "no-store",
+      credentials: "same-origin"
+    });
     if (!response.ok) throw new Error("CSRF unavailable");
     const payload = await response.json();
     csrfToken = payload.csrf_token || "";
@@ -569,13 +572,19 @@ async function loadCurrentUser() {
   }
 }
 
-async function sendAuthRequest(path, data) {
+async function sendAuthRequest(path, data, retryOnCsrfError = true) {
+  if (!csrfToken) await loadCsrfToken();
   const response = await fetch(`${API_BASE}/auth/${path}`, {
     method: "POST",
     headers: apiHeaders(),
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
+    credentials: "same-origin"
   });
   const payload = await response.json().catch(() => ({}));
+  if (response.status === 403 && retryOnCsrfError && /csrf/i.test(payload.error || "")) {
+    await loadCsrfToken();
+    return sendAuthRequest(path, data, false);
+  }
   if (!response.ok) throw new Error(payload.error || "Auth request failed.");
   return payload;
 }

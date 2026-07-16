@@ -337,7 +337,10 @@ def get_discovery():
 
 @app.get("/api/csrf-token")
 def get_csrf_token():
-    return ok({"csrf_token": csrf_token()})
+    response, status = ok({"csrf_token": csrf_token()})
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response, status
 
 
 @app.post("/api/uploads")
