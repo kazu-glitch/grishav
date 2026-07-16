@@ -667,7 +667,8 @@ img {
 
 .card-actions button,
 .reaction-row button,
-.trailer-link {
+.trailer-link,
+.video-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -684,6 +685,10 @@ img {
 .trailer-link {
   background: var(--text);
   color: var(--bg);
+}
+
+.video-link {
+  background: var(--surface-3);
 }
 
 .card-actions > * {

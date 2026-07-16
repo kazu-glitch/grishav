@@ -212,7 +212,7 @@ def test_jikan_search_uses_local_fallback(client, monkeypatch):
 
     assert response.status_code == 200
     payload = response.get_json()
-    assert payload["source"] == "local-fallback"
+    assert payload["source"] == "catalogue"
     assert payload["items"][0]["title"] == "Naruto"
 
 

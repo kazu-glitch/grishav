@@ -94,6 +94,7 @@ let activeAnimeFilter = "all";
 let apiEnabled = false;
 let currentUser = null;
 let adminUsers = [];
+let videos = [];
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -160,6 +161,16 @@ async function loadBackendState() {
     apiEnabled = true;
   } catch {
     apiEnabled = false;
+  }
+}
+
+async function loadVideos() {
+  try {
+    const response = await fetch(`${API_BASE}/videos`);
+    const payload = await response.json();
+    videos = response.ok && Array.isArray(payload) ? payload : [];
+  } catch {
+    videos = [];
   }
 }
 
@@ -297,6 +308,11 @@ function renderAnime() {
   renderAnimeSummary();
   $("#animeGrid").innerHTML = anime.map((item, index) => {
     const progress = Math.min(100, Math.round((item.watched / item.episodes) * 100));
+    const animeVideos = videos.filter((video) => video.animeTitle.toLowerCase() === item.title.toLowerCase());
+    const videoActions = animeVideos.map((video) => `
+      <a class="video-link" href="${escapeHtml(video.videoUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(video.title)}</a>
+      ${isAdmin() ? `<button type="button" data-delete-video="${escapeHtml(video.id)}">Remove video</button>` : ""}
+    `).join("");
     return `
       <article class="anime-card">
         <img src="${escapeHtml(posterFor(item, index + 1))}" alt="${escapeHtml(item.title)} poster art">
@@ -317,6 +333,8 @@ function renderAnime() {
           <div class="progress"><span style="width:${progress}%"></span></div>
           <div class="card-actions">
             <a class="trailer-link" href="${trailerFor(item)}" target="_blank" rel="noopener noreferrer" aria-label="Watch ${item.title} trailer on YouTube">▶ Trailer</a>
+            ${videoActions}
+            ${isAdmin() ? `<button type="button" data-add-video="${escapeHtml(item.title)}">Add video</button>` : ""}
             <button type="button" data-progress-anime="${item.id}">+ Episode</button>
             <button type="button" data-bookmark-anime="${item.id}">Bookmark</button>
             <button type="button" data-edit-anime="${item.id}">Edit</button>
@@ -833,6 +851,46 @@ async function handleProfileSubmit(event) {
   }
 }
 
+function openVideoModal(animeTitle) {
+  if (!isAdmin()) return;
+  const form = $("#videoForm");
+  form.reset();
+  form.elements.animeTitle.value = animeTitle;
+  $("#videoModal").showModal();
+}
+
+async function handleVideoSubmit(event) {
+  event.preventDefault();
+  if (!isAdmin()) return;
+  const form = event.currentTarget;
+  const data = formData(form);
+  const response = await fetch(`${API_BASE}/videos`, {
+    method: "POST",
+    headers: apiHeaders(),
+    body: JSON.stringify({ ...data, episode: data.episode ? Number(data.episode) : null }),
+    credentials: "same-origin"
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) return notify(payload.error || "Video could not be saved.");
+  videos.unshift(payload);
+  form.closest("dialog").close();
+  renderAnime();
+  notify("Video saved.");
+}
+
+async function deleteVideo(videoId) {
+  if (!isAdmin()) return;
+  const response = await fetch(`${API_BASE}/videos/${encodeURIComponent(videoId)}`, {
+    method: "DELETE",
+    headers: apiHeaders(),
+    credentials: "same-origin"
+  });
+  if (!response.ok) return notify("Video could not be removed.");
+  videos = videos.filter((video) => video.id !== videoId);
+  renderAnime();
+  notify("Video removed.");
+}
+
 async function searchJikanForAnime() {
   const form = $("#animeForm");
   const query = form.elements.title.value.trim();
@@ -972,6 +1030,7 @@ function bindEvents() {
   $("#scheduleForm").addEventListener("submit", handleScheduleSubmit);
   $("#commentForm").addEventListener("submit", handleCommentSubmit);
   $("#profileForm").addEventListener("submit", handleProfileSubmit);
+  $("#videoForm").addEventListener("submit", handleVideoSubmit);
   $("#loginForm").addEventListener("submit", handleLogin);
   $("#registerForm").addEventListener("submit", handleRegister);
   $("#logoutButton").addEventListener("click", handleLogout);
@@ -1045,6 +1104,8 @@ function handleDelegatedActions(event) {
   if (dataset.deleteComment) removeItem("comments", dataset.deleteComment, "Comment deleted.");
   if (dataset.jikanTitle) applyJikanResult(target);
   if (dataset.discoveryTitle) startAnimeFromDiscovery(dataset.discoveryTitle);
+  if (dataset.addVideo) openVideoModal(dataset.addVideo);
+  if (dataset.deleteVideo) deleteVideo(dataset.deleteVideo);
 }
 
 function removeItem(collection, id, message) {
@@ -1130,6 +1191,7 @@ function setView(view) {
 async function boot() {
   await loadCsrfToken();
   await loadBackendState();
+  await loadVideos();
   await loadCurrentUser();
   await loadAdminUsers();
   bindEvents();

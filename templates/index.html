@@ -415,6 +415,26 @@
     </form>
   </dialog>
 
+  <dialog id="videoModal">
+    <form id="videoForm" method="dialog" class="modal-card">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Anime video</p>
+          <h3>Add Video</h3>
+        </div>
+        <button class="icon-btn close-modal" type="button" aria-label="Close">x</button>
+      </div>
+      <label>Anime <input name="animeTitle" required readonly></label>
+      <label>Video title <input name="title" required maxlength="180" placeholder="Episode 1"></label>
+      <div class="form-row">
+        <label>Episode <input name="episode" type="number" min="1" placeholder="Optional"></label>
+      </div>
+      <label>Video link <input name="videoUrl" type="url" required placeholder="https://..."></label>
+      <p class="field-hint">Use an official or authorized video link.</p>
+      <button class="primary-btn" type="submit">Save Video</button>
+    </form>
+  </dialog>
+
   <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

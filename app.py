@@ -38,7 +38,7 @@ ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
 JIKAN_CACHE = {}
 JIKAN_TTL = 900
 JIKAN_RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
-JIKAN_MAX_ATTEMPTS = 2
+JIKAN_MAX_ATTEMPTS = 3
 
 JIKAN_FALLBACK = [
     {
@@ -301,7 +301,7 @@ def fetch_jikan_payload(url):
             last_error = error
 
         if attempt < JIKAN_MAX_ATTEMPTS - 1:
-            time.sleep(0.5)
+            time.sleep(1.5 * (attempt + 1))
     raise last_error
 
 
@@ -396,13 +396,14 @@ def search_jikan():
     if cached and time.time() - cached["created_at"] < JIKAN_TTL:
         return ok(cached["items"])
 
-    url = f"https://api.jikan.moe/v4/anime?q={quote(query)}&limit=8&sfw=true"
+    fields = "mal_id,title,title_english,titles,episodes,score,genres,studios,images,trailer,url"
+    url = f"https://api.jikan.moe/v4/anime?q={quote(query)}&limit=6&sfw=true&fields={quote(fields)}"
     try:
         payload = fetch_jikan_payload(url)
     except (OSError, URLError, json.JSONDecodeError) as error:
         items = fallback_jikan_items(query)
-        JIKAN_CACHE[cache_key] = {"created_at": time.time(), "items": items}
-        return ok({"items": items, "source": "local-fallback", "detail": "Jikan is temporarily unavailable."})
+        # Do not cache a temporary upstream failure; the next search should retry Jikan.
+        return ok({"items": items, "source": "catalogue"})
 
     items = []
     for anime in payload.get("data", []):
@@ -657,6 +658,9 @@ def create_video():
         return ok({"error": "Anime title, video title, and video URL are required"}, 400)
     if urlparse(video_url).scheme not in {"http", "https"}:
         return ok({"error": "Video URL must use http or https"}, 400)
+    access_error = admin_required()
+    if access_error:
+        return access_error
 
     video_id = data.get("id", new_id("video"))
     execute(
@@ -674,6 +678,15 @@ def create_video():
         ),
     )
     return ok(video_to_json(fetch_one("SELECT * FROM anime_videos WHERE id = %s", (video_id,))), 201)
+
+
+@app.delete("/api/videos/<video_id>")
+def delete_video(video_id):
+    access_error = admin_required()
+    if access_error:
+        return access_error
+    execute("DELETE FROM anime_videos WHERE id = %s", (video_id,))
+    return ok()
 
 
 @app.post("/api/anime")
