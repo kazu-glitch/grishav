@@ -93,9 +93,16 @@ let state = loadState();
 let activeAnimeFilter = "all";
 let apiEnabled = false;
 let currentUser = null;
+let adminUsers = [];
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>'"]/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
+  }[character]));
+}
 
 function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -110,14 +117,7 @@ function loadState() {
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   if (!apiEnabled) return;
-  if (!currentUser) {
-    notify("Login required to save changes to MySQL.");
-    return;
-  }
-  if (!isAdmin()) {
-    notify("Only administrators can update the shared catalogue.");
-    return;
-  }
+  if (!currentUser || !isAdmin()) return;
   fetch(`${API_BASE}/state`, {
     method: "PUT",
     headers: apiHeaders(),
@@ -269,14 +269,14 @@ function roomCard(room, index, full) {
   `).join("");
   return `
     <article class="room-card ${full ? "full" : ""}">
-      <img class="poster-thumb" src="${posterFor(room, index)}" alt="${room.anime} poster art">
+      <img class="poster-thumb" src="${escapeHtml(posterFor(room, index))}" alt="${escapeHtml(room.anime)} poster art">
       <div>
         <div class="badge-row">
           <span class="badge ${room.status === "Live" ? "live" : "warn"}">${room.status}</span>
           <span class="badge">${room.viewers || Math.ceil(room.capacity * 0.64)}/${room.capacity} watching</span>
         </div>
-        <h4>${room.name}</h4>
-        <p>${room.anime} - Episode ${room.episode}</p>
+          <h4>${escapeHtml(room.name)}</h4>
+        <p>${escapeHtml(room.anime)} - Episode ${Number(room.episode)}</p>
         ${full ? `<div class="reaction-row">${reactionButtons}</div>
         <div class="card-actions">
           <button type="button" data-join-room="${room.id}">Join</button>
@@ -299,7 +299,7 @@ function renderAnime() {
     const progress = Math.min(100, Math.round((item.watched / item.episodes) * 100));
     return `
       <article class="anime-card">
-        <img src="${posterFor(item, index + 1)}" alt="${item.title} poster art">
+        <img src="${escapeHtml(posterFor(item, index + 1))}" alt="${escapeHtml(item.title)} poster art">
         <div class="anime-card-body">
           <div class="badge-row">
             <span class="badge">${item.status}</span>
@@ -308,7 +308,7 @@ function renderAnime() {
             <span class="badge">${item.genre || "Shonen"}</span>
             <span class="badge">${item.studio || "Studio TBA"}</span>
           </div>
-          <h4>${item.title}</h4>
+          <h4>${escapeHtml(item.title)}</h4>
           <p>Recommendation match: ${recommendationScore(item)}%</p>
           <div class="progress-head">
             <span>Episode progress</span>
@@ -389,7 +389,7 @@ function renderSchedules() {
         <div class="date-chip">${date.toLocaleString([], { month: "short" })}<span>${date.getDate()}</span></div>
         <div>
           <span class="badge">${schedule.type}</span>
-          <h4>${schedule.title}</h4>
+          <h4>${escapeHtml(schedule.title)}</h4>
           <p>${formatDateTime(schedule)} - ${timeUntil(schedule)}</p>
         </div>
         <div class="card-actions">
@@ -405,7 +405,7 @@ function renderCountdown() {
   const schedules = sortedSchedules().slice(0, 4);
   $("#countdownList").innerHTML = schedules.map((schedule) => `
     <article class="activity-item">
-      <h4>${schedule.title}</h4>
+      <h4>${escapeHtml(schedule.title)}</h4>
       <p>${formatDateTime(schedule)} - <strong>${timeUntil(schedule)}</strong></p>
     </article>
   `).join("") || emptyState("No scheduled countdowns.");
@@ -418,11 +418,11 @@ function renderComments() {
   $("#chatFeed").innerHTML = state.comments.slice(0, 8).map((comment) => `
     <article class="chat-message">
       <div class="badge-row">
-        <span class="badge">${comment.author}</span>
-        <span class="badge">${comment.target}</span>
-        <span class="image-badge"><img src="${reactionImage(comment.reaction)}" alt="${comment.reaction}">${comment.reaction}</span>
+        <span class="badge">${escapeHtml(comment.author)}</span>
+        <span class="badge">${escapeHtml(comment.target)}</span>
+        <span class="image-badge"><img src="${escapeHtml(reactionImage(comment.reaction))}" alt="${escapeHtml(comment.reaction)}">${escapeHtml(comment.reaction)}</span>
       </div>
-      <p>${comment.message}</p>
+      <p>${escapeHtml(comment.message)}</p>
       <div class="card-actions">
         <button type="button" data-edit-comment="${comment.id}">Edit</button>
         <button type="button" data-delete-comment="${comment.id}">Delete</button>
@@ -472,8 +472,11 @@ function renderProfile() {
   profileUsername.textContent = user ? `@${user.username}` : "@guest";
   profileBio.textContent = user?.bio || (user ? "OtakuHub member" : "Sign in to see your profile.");
   profileEyebrow.textContent = user ? `${user.role} profile` : "Your profile";
-  profileAvatar.src = user?.avatarUrl || "/static/assets/avatar.png";
-  profileAvatar.alt = user ? `${user.displayName}'s avatar` : "OtakuHub user avatar";
+  const initials = (user?.displayName || "OtakuHub Member").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+  profileAvatar.setAttribute("aria-label", user ? `${user.displayName}'s avatar` : "OtakuHub user avatar");
+  profileAvatar.innerHTML = user?.avatarUrl
+    ? `<img src="${escapeHtml(user.avatarUrl)}" alt="${escapeHtml(user.displayName)}'s avatar">`
+    : escapeHtml(initials);
 
   const favoriteCount = state.anime.filter((item) => item.favorite).length;
   const completedEpisodes = state.anime.reduce((sum, item) => sum + Number(item.watched), 0);
@@ -493,6 +496,8 @@ function renderProfile() {
 function renderAdmin() {
   if (!isAdmin()) {
     $("#adminGrid").innerHTML = "";
+    $("#adminUsersList").innerHTML = "";
+    $("#adminUserCount").textContent = "0 users";
     return;
   }
   const liveRooms = state.rooms.filter((room) => room.status === "Live").length;
@@ -511,6 +516,30 @@ function renderAdmin() {
       <p>${text}</p>
     </article>
   `).join("");
+  renderAdminUsers();
+}
+
+function formatUserActivity(value) {
+  if (!value) return "Not recorded";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Not recorded" : date.toLocaleString();
+}
+
+function renderAdminUsers() {
+  $("#adminUserCount").textContent = `${adminUsers.length} user${adminUsers.length === 1 ? "" : "s"}`;
+  $("#adminUsersList").innerHTML = adminUsers.map((user) => `
+    <article class="admin-user-row">
+      ${user.avatarUrl
+        ? `<img src="${escapeHtml(user.avatarUrl)}" alt="${escapeHtml(user.displayName)} profile photo">`
+        : `<span class="avatar-initials">${escapeHtml(user.displayName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase())}</span>`}
+      <div>
+        <strong>${escapeHtml(user.displayName)} <span class="badge">${escapeHtml(user.role)}</span></strong>
+        <small>@${escapeHtml(user.username)} · ${escapeHtml(user.email || "No email")}</small>
+        <small>Joined: ${escapeHtml(formatUserActivity(user.createdAt))} · Last login: ${escapeHtml(formatUserActivity(user.lastLoginAt))}</small>
+      </div>
+      <span class="badge">Active account</span>
+    </article>
+  `).join("") || emptyState("No users are registered yet.");
 }
 
 function renderNotifications() {
@@ -522,6 +551,15 @@ function emptyState(text) {
 }
 
 function openModal(id) {
+  if (id === "profileModal") {
+    if (!currentUser) return openModal("authModal");
+    const form = $("#profileForm");
+    form.reset();
+    form.elements.displayName.value = currentUser.displayName || "";
+    form.elements.bio.value = currentUser.bio || "";
+    form.elements.imageUrl.value = currentUser.avatarUrl || "";
+    updateUploadPreview(form);
+  }
   const dialog = $(`#${id}`);
   dialog?.showModal();
 }
@@ -589,6 +627,20 @@ async function sendAuthRequest(path, data, retryOnCsrfError = true) {
   return payload;
 }
 
+async function loadAdminUsers() {
+  if (!isAdmin()) {
+    adminUsers = [];
+    return;
+  }
+  try {
+    const response = await fetch(`${API_BASE}/users`, { credentials: "same-origin" });
+    const payload = await response.json();
+    adminUsers = response.ok && Array.isArray(payload) ? payload : [];
+  } catch {
+    adminUsers = [];
+  }
+}
+
 async function handleLogin(event) {
   event.preventDefault();
   // Event.currentTarget can be cleared after an await, so retain the form
@@ -601,7 +653,8 @@ async function handleLogin(event) {
     currentUser = payload.user;
     form.reset();
     $("#authModal").close();
-    renderAuth();
+    await loadAdminUsers();
+    render();
     notify(`Welcome back, ${currentUser.displayName}.`);
   } catch (error) {
     authStatus.textContent = error.message;
@@ -618,7 +671,8 @@ async function handleRegister(event) {
     currentUser = payload.user;
     form.reset();
     $("#authModal").close();
-    renderAuth();
+    await loadAdminUsers();
+    render();
     notify(`Account created for ${currentUser.displayName}.`);
   } catch (error) {
     authStatus.textContent = error.message;
@@ -632,7 +686,9 @@ async function handleLogout() {
     // Local UI still clears the user when the backend is unavailable.
   }
   currentUser = null;
-  renderAuth();
+  adminUsers = [];
+  render();
+  setView("dashboard");
   notify("Logged out.");
 }
 
@@ -750,6 +806,31 @@ async function handleAnimeSubmit(event) {
   resetForm(form, "Add Anime");
   render();
   notify(`${anime.title} saved to your anime list.`);
+}
+
+async function handleProfileSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!currentUser) return;
+  try {
+    const avatarUrl = await uploadSelectedImage(form) || currentUser.avatarUrl || "";
+    const data = formData(form);
+    const response = await fetch(`${API_BASE}/profile`, {
+      method: "PUT",
+      headers: apiHeaders(),
+      body: JSON.stringify({ displayName: data.displayName, bio: data.bio, avatarUrl }),
+      credentials: "same-origin"
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "Profile update failed.");
+    currentUser = payload;
+    await loadAdminUsers();
+    form.closest("dialog").close();
+    render();
+    notify("Profile updated.");
+  } catch (error) {
+    notify(error.message);
+  }
 }
 
 async function searchJikanForAnime() {
@@ -890,11 +971,13 @@ function bindEvents() {
   $("#animeForm").addEventListener("submit", handleAnimeSubmit);
   $("#scheduleForm").addEventListener("submit", handleScheduleSubmit);
   $("#commentForm").addEventListener("submit", handleCommentSubmit);
+  $("#profileForm").addEventListener("submit", handleProfileSubmit);
   $("#loginForm").addEventListener("submit", handleLogin);
   $("#registerForm").addEventListener("submit", handleRegister);
   $("#logoutButton").addEventListener("click", handleLogout);
   $("#roomForm").elements.imageFile.addEventListener("change", () => updateUploadPreview($("#roomForm")));
   $("#animeForm").elements.imageFile.addEventListener("change", () => updateUploadPreview($("#animeForm")));
+  $("#profileForm").elements.imageFile.addEventListener("change", () => updateUploadPreview($("#profileForm")));
   $("#jikanSearchBtn").addEventListener("click", searchJikanForAnime);
   $("#searchInput").addEventListener("input", () => {
     renderRooms();
@@ -985,6 +1068,14 @@ function reactToRoom(id, reaction) {
 function joinRoom(id) {
   const room = state.rooms.find((item) => item.id === id);
   if (!room) return;
+  if (room.status === "Private") {
+    notify("This is a private room. Ask its host for access.");
+    return;
+  }
+  if (Number(room.viewers || 0) >= Number(room.capacity)) {
+    notify(`${room.name} is full.`);
+    return;
+  }
   state.rooms = state.rooms.map((item) => {
     if (item.id !== id) return item;
     const viewers = Math.min(Number(item.capacity), Number(item.viewers || 0) + 1);
@@ -1040,6 +1131,7 @@ async function boot() {
   await loadCsrfToken();
   await loadBackendState();
   await loadCurrentUser();
+  await loadAdminUsers();
   bindEvents();
   render();
   const initialView = location.hash.replace("#", "") || "dashboard";

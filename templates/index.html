@@ -194,13 +194,14 @@
       <section id="profile" class="view" aria-labelledby="profileTitle">
         <div class="profile-layout">
           <section class="profile-card">
-            <img id="profileAvatar" src="{{ url_for('static', filename='assets/avatar.png') }}" alt="OtakuHub user avatar">
+            <div id="profileAvatar" class="profile-avatar" aria-label="OtakuHub user avatar">OH</div>
             <div>
               <p id="profileEyebrow" class="eyebrow">Your profile</p>
               <h2 id="profileTitle">OtakuHub member</h2>
               <p id="profileUsername">@guest</p>
               <p id="profileBio">Sign in to see your profile.</p>
               <div class="profile-actions">
+                <button id="customizeProfileBtn" class="secondary-btn" type="button" data-open-modal="profileModal">Customize Profile</button>
                 <button class="secondary-btn" type="button" data-open-modal="commentModal">Write Review</button>
                 <button class="primary-btn" type="button" data-open-modal="animeModal">Update List</button>
               </div>
@@ -227,6 +228,16 @@
           <button id="resetDemoBtn" class="danger-btn" type="button" hidden>Reset Demo Data</button>
         </div>
         <div id="adminGrid" class="admin-grid"></div>
+        <section class="panel admin-users-panel">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Account activity</p>
+              <h3>Registered Users</h3>
+            </div>
+            <span id="adminUserCount" class="badge">0 users</span>
+          </div>
+          <div id="adminUsersList" class="admin-users-list" aria-live="polite"></div>
+        </section>
       </section>
     </main>
   </div>
@@ -384,6 +395,24 @@
         </form>
       </div>
     </div>
+  </dialog>
+
+  <dialog id="profileModal">
+    <form id="profileForm" method="dialog" class="modal-card">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Account settings</p>
+          <h3>Customize Profile</h3>
+        </div>
+        <button class="icon-btn close-modal" type="button" aria-label="Close">x</button>
+      </div>
+      <label>Display name <input name="displayName" required minlength="2" maxlength="120"></label>
+      <label>Bio <textarea name="bio" maxlength="1000" placeholder="Tell the community about your anime interests."></textarea></label>
+      <input type="hidden" name="imageUrl">
+      <label>Profile photo from device <input name="imageFile" type="file" accept="image/png,image/jpeg,image/gif,image/webp"></label>
+      <div class="upload-preview" data-preview-for="profileForm"></div>
+      <button class="primary-btn" type="submit">Save Profile</button>
+    </form>
   </dialog>
 
   <script src="{{ url_for('static', filename='app.js') }}"></script>
