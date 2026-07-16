@@ -142,6 +142,25 @@ def test_login_and_logout(client):
     assert client.get("/api/auth/me").status_code == 401
 
 
+def test_profile_returns_the_signed_in_users_profile(client):
+    client.post(
+        "/api/auth/register",
+        json={
+            "displayName": "Profile Owner",
+            "username": "profileowner",
+            "email": "profile@example.com",
+            "password": "secret123",
+        },
+        headers=csrf_headers(client),
+    )
+
+    response = client.get("/api/profile")
+
+    assert response.status_code == 200
+    assert response.get_json()["displayName"] == "Profile Owner"
+    assert response.get_json()["username"] == "profileowner"
+
+
 def test_api_write_requires_csrf_token(client):
     response = client.post("/api/rooms", json={})
 
@@ -154,6 +173,24 @@ def test_api_write_requires_login(client):
 
     assert response.status_code == 401
     assert response.get_json()["error"] == "Login required for this action"
+
+
+def test_shared_state_write_requires_an_administrator(client):
+    client.post(
+        "/api/auth/register",
+        json={
+            "displayName": "Regular Member",
+            "username": "member",
+            "email": "member@example.com",
+            "password": "secret123",
+        },
+        headers=csrf_headers(client),
+    )
+
+    response = client.put("/api/state", json={}, headers=csrf_headers(client))
+
+    assert response.status_code == 403
+    assert response.get_json()["error"] == "Administrator access is required"
 
 
 def test_jikan_search_uses_local_fallback(client, monkeypatch):

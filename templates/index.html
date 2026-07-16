@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OtakuHub - Anime Watch Party Platform</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
   <div class="app-shell">
@@ -19,22 +19,22 @@
 
       <nav class="nav" aria-label="Primary">
         <a class="nav-link active" href="#dashboard" data-view="dashboard">
-          <span class="icon">DH</span> Dashboard
+          <span class="icon">D</span> Dashboard
         </a>
         <a class="nav-link" href="#rooms" data-view="rooms">
-          <span class="icon">WR</span> Watch Rooms
+          <span class="icon">R</span> Watch Rooms
         </a>
         <a class="nav-link" href="#anime" data-view="anime">
-          <span class="icon">AL</span> Anime Lists
+          <span class="icon">A</span> Anime Lists
         </a>
         <a class="nav-link" href="#calendar" data-view="calendar">
-          <span class="icon">CA</span> Calendar
+          <span class="icon">C</span> Calendar
         </a>
         <a class="nav-link" href="#profile" data-view="profile">
-          <span class="icon">PR</span> Profile
+          <span class="icon">P</span> Profile
         </a>
-        <a class="nav-link" href="#admin" data-view="admin">
-          <span class="icon">AD</span> Admin
+        <a class="nav-link" href="#admin" data-view="admin" data-admin-only hidden>
+          <span class="icon">S</span> Admin
         </a>
       </nav>
 
@@ -53,17 +53,18 @@
         </div>
         <div class="topbar-actions">
           <label class="search-wrap" aria-label="Search anime, rooms, users">
-            <span>Search</span>
+            <span>?</span>
             <input id="searchInput" type="search" placeholder="Search anime, rooms, users">
           </label>
           <button id="notificationBtn" class="icon-btn" type="button" aria-label="Notifications">
             <span>!</span>
             <b id="notificationCount">0</b>
           </button>
-          <button id="themeToggle" class="icon-btn" type="button" aria-label="Toggle dark mode">
-            <span>T</span>
+          <button id="themeToggle" class="icon-btn" type="button" aria-label="Toggle contrast mode">
+            <span>B/W</span>
           </button>
-          <button class="secondary-btn auth-btn" type="button" data-open-modal="authModal">Login</button>
+          <button id="authButton" class="secondary-btn auth-btn" type="button" data-open-modal="authModal">Login</button>
+          <button id="logoutButton" class="secondary-btn hidden" type="button">Logout</button>
           <button class="primary-btn" type="button" data-open-modal="roomModal">Create Room</button>
         </div>
       </header>
@@ -72,8 +73,8 @@
         <div class="hero-band">
           <div class="hero-copy">
             <p class="eyebrow">Tonight's featured watch party</p>
-          <h2 id="dashboardTitle">Stream the big shonen nights together.</h2>
-          <p>Host Naruto, One Piece, Attack on Titan, and Hunter x Hunter rooms with live chat, progress tracking, countdowns, and anime-themed reactions.</p>
+            <h2 id="dashboardTitle">Stream the big shonen nights together.</h2>
+            <p>Host Naruto, One Piece, Attack on Titan, and Hunter x Hunter rooms with live chat, progress tracking, countdowns, and anime-themed reactions.</p>
             <div class="hero-actions">
               <button class="primary-btn" type="button" data-open-modal="roomModal">Start a Watch Party</button>
               <button class="secondary-btn" type="button" data-nav-target="anime">Browse Anime</button>
@@ -123,6 +124,17 @@
               <button type="submit" class="primary-btn">Send</button>
             </form>
           </section>
+
+          <section class="panel discovery-panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Discovery</p>
+                <h3>What to Watch Next</h3>
+              </div>
+              <button class="text-btn" type="button" data-nav-target="anime">Open Library</button>
+            </div>
+            <div id="discoveryRails" class="discovery-grid"></div>
+          </section>
         </div>
       </section>
 
@@ -150,8 +162,10 @@
           <button class="tab" type="button" data-filter="favorite">Favorites</button>
           <button class="tab" type="button" data-filter="watching">Watching</button>
           <button class="tab" type="button" data-filter="planned">Plan to Watch</button>
+          <button class="tab" type="button" data-filter="completed">Completed</button>
         </div>
         <div id="animeSummary" class="anime-summary" aria-label="Anime library summary"></div>
+        <div id="animeInsights" class="insight-grid" aria-label="Anime community insights"></div>
         <div id="animeGrid" class="anime-grid"></div>
       </section>
 
@@ -180,11 +194,12 @@
       <section id="profile" class="view" aria-labelledby="profileTitle">
         <div class="profile-layout">
           <section class="profile-card">
-            <img src="assets/avatar.png" alt="OtakuHub user avatar">
+            <img id="profileAvatar" src="{{ url_for('static', filename='assets/avatar.png') }}" alt="OtakuHub user avatar">
             <div>
-              <p class="eyebrow">User profile</p>
-              <h2 id="profileTitle">Mika Tachibana</h2>
-              <p>Room host, seasonal tracker, and spoiler-free chat moderator.</p>
+              <p id="profileEyebrow" class="eyebrow">Your profile</p>
+              <h2 id="profileTitle">OtakuHub member</h2>
+              <p id="profileUsername">@guest</p>
+              <p id="profileBio">Sign in to see your profile.</p>
               <div class="profile-actions">
                 <button class="secondary-btn" type="button" data-open-modal="commentModal">Write Review</button>
                 <button class="primary-btn" type="button" data-open-modal="animeModal">Update List</button>
@@ -203,13 +218,13 @@
         </div>
       </section>
 
-      <section id="admin" class="view" aria-labelledby="adminTitle">
+      <section id="admin" class="view" aria-labelledby="adminTitle" data-admin-only hidden>
         <div class="section-head page-head">
           <div>
             <p class="eyebrow">Admin dashboard</p>
             <h2 id="adminTitle">Platform Control</h2>
           </div>
-          <button id="resetDemoBtn" class="danger-btn" type="button">Reset Demo Data</button>
+          <button id="resetDemoBtn" class="danger-btn" type="button" hidden>Reset Demo Data</button>
         </div>
         <div id="adminGrid" class="admin-grid"></div>
       </section>
@@ -241,6 +256,9 @@
           <option>Private</option>
         </select>
       </label>
+      <input type="hidden" name="imageUrl">
+      <label>Room image from device <input name="imageFile" type="file" accept="image/*"></label>
+      <div class="upload-preview" data-preview-for="roomForm"></div>
       <button class="primary-btn" type="submit">Save Room</button>
     </form>
   </dialog>
@@ -270,6 +288,18 @@
           </select>
         </label>
       </div>
+      <div class="jikan-tools">
+        <button id="jikanSearchBtn" class="secondary-btn" type="button">Search Jikan</button>
+        <span class="muted">Find title details and poster art.</span>
+      </div>
+      <div id="jikanResults" class="jikan-results" aria-live="polite"></div>
+      <input type="hidden" name="genre">
+      <input type="hidden" name="studio">
+      <input type="hidden" name="imageUrl">
+      <label>YouTube trailer link <input name="trailerUrl" type="url" placeholder="Optional: paste the official YouTube trailer"></label>
+      <p class="field-hint">Leave this empty and OtakuHub will create a YouTube trailer search for this title.</p>
+      <label>Anime image from device <input name="imageFile" type="file" accept="image/*"></label>
+      <div class="upload-preview" data-preview-for="animeForm"></div>
       <label class="check-row"><input name="favorite" type="checkbox"> Add to favorite anime lists</label>
       <button class="primary-btn" type="submit">Save Anime</button>
     </form>
@@ -312,7 +342,7 @@
         <button class="icon-btn close-modal" type="button" aria-label="Close">x</button>
       </div>
       <input type="hidden" name="id">
-      <label>Name <input name="author" required placeholder="Mika"></label>
+      <label>Name <input name="author" required placeholder="Grishav"></label>
       <label>Anime or room <input name="target" required placeholder="Demon Slayer room"></label>
       <label>Message <textarea name="message" required placeholder="The final scene was incredible."></textarea></label>
       <label>Reaction
@@ -328,7 +358,7 @@
   </dialog>
 
   <dialog id="authModal">
-    <form method="dialog" class="modal-card auth-card">
+    <div class="modal-card auth-card">
       <div class="section-head">
         <div>
           <p class="eyebrow">User access</p>
@@ -336,23 +366,26 @@
         </div>
         <button class="icon-btn close-modal" type="button" aria-label="Close">x</button>
       </div>
+      <p id="authStatus" class="auth-status" aria-live="polite">Sign in to continue to your OtakuHub account, or create a new account.</p>
       <div class="auth-grid">
-        <section>
+        <form id="loginForm" class="auth-section">
           <h4>Returning Host</h4>
-          <label>Email <input type="email" placeholder="kazu@example.com"></label>
-          <label>Password <input type="password" placeholder="Your password"></label>
-          <button class="primary-btn" type="button">Login</button>
-        </section>
-        <section>
+          <label>Email or username <input name="identifier" required autocomplete="username" placeholder="admin"></label>
+          <label>Password <input name="password" type="password" required autocomplete="current-password" placeholder="Your password"></label>
+          <button class="primary-btn" type="submit">Login</button>
+        </form>
+        <form id="registerForm" class="auth-section">
           <h4>New OtakuHub User</h4>
-          <label>Display name <input type="text" placeholder="Kazu"></label>
-          <label>Email <input type="email" placeholder="you@example.com"></label>
-          <button class="secondary-btn" type="button">Create Account</button>
-        </section>
+          <label>Display name <input name="displayName" required minlength="2" autocomplete="name" placeholder="Kazu"></label>
+          <label>Username <input name="username" required minlength="3" pattern="[a-z0-9_]{3,30}" autocomplete="username" placeholder="kazu_01"></label>
+          <label>Email <input name="email" type="email" required autocomplete="email" placeholder="you@example.com"></label>
+          <label>Password <input name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters"></label>
+          <button class="secondary-btn" type="submit">Create Account</button>
+        </form>
       </div>
-    </form>
+    </div>
   </dialog>
 
-  <script src="app.js"></script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

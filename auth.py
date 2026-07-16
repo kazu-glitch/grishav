@@ -22,6 +22,8 @@ def public_user(row):
         "displayName": row["display_name"],
         "username": row["username"],
         "email": row.get("email"),
+        "bio": row.get("bio"),
+        "avatarUrl": row.get("avatar_url"),
         "role": row.get("role", "user"),
     }
 
@@ -31,7 +33,7 @@ def current_user():
     if not user_id:
         return None
     return fetch_one(
-        "SELECT id, display_name, username, email, role FROM users WHERE id = %s",
+        "SELECT id, display_name, username, email, bio, avatar_url, role FROM users WHERE id = %s",
         (user_id,),
     )
 
@@ -58,8 +60,8 @@ def register():
         return auth_response({"error": "Username must be 3-30 lowercase letters, numbers, or underscores."}, 400)
     if not EMAIL_RE.fullmatch(email):
         return auth_response({"error": "Enter a valid email address."}, 400)
-    if len(password) < 6:
-        return auth_response({"error": "Password must be at least 6 characters."}, 400)
+    if len(password) < 8:
+        return auth_response({"error": "Password must be at least 8 characters."}, 400)
 
     existing = fetch_one("SELECT id FROM users WHERE username = %s OR email = %s", (username, email))
     if existing:
@@ -81,6 +83,7 @@ def register():
             "/static/assets/avatar.png",
         ),
     )
+    preserve_csrf_token()
     session["user_id"] = user_id
     return auth_response({"user": public_user(fetch_one("SELECT * FROM users WHERE id = %s", (user_id,)))}, 201)
 
@@ -95,11 +98,20 @@ def login():
     if not user or not user.get("password_hash") or not check_password_hash(user["password_hash"], password):
         return auth_response({"error": "Invalid username/email or password."}, 401)
 
+    preserve_csrf_token()
     session["user_id"] = user["id"]
     return auth_response({"user": public_user(user)})
 
 
 @auth_bp.post("/logout")
 def logout():
-    session.pop("user_id", None)
+    session.clear()
     return auth_response({"ok": True})
+
+
+def preserve_csrf_token():
+    """Clear pre-auth session state while retaining the valid form token."""
+    csrf_token = session.get("csrf_token")
+    session.clear()
+    if csrf_token:
+        session["csrf_token"] = csrf_token

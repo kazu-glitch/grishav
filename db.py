@@ -24,6 +24,11 @@ def get_connection(include_database=True):
     connection = mysql.connector.connect(**db_config(include_database=include_database))
     try:
         yield connection
+    except Exception:
+        # Keep a failed write from leaking into a later operation when callers
+        # reuse a connection implementation with an open transaction.
+        connection.rollback()
+        raise
     finally:
         connection.close()
 

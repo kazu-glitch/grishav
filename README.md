@@ -1,182 +1,163 @@
-# OtakuHub
+# OtakuHub — Anime Watch-Party Planner
 
-OtakuHub is a Flask and MySQL anime watch-party dashboard. It gives users a place to manage watch rooms, track anime progress, schedule premiere nights, post comments, save reactions, upload poster art, and search Jikan for anime details.
+OtakuHub is a coursework web application for planning anime watch parties, tracking an anime catalogue, and discussing events. It demonstrates authenticated, role-based user and session management with a Flask API, Jinja2 frontend, JavaScript client, and MySQL persistence.
 
-The project also includes the older static frontend files in the repo root, but the main web app lives in `otakuhub_flask/`.
+Project scope, requirements traceability, and the security design are documented in [docs/PROJECT_PROPOSAL.md](docs/PROJECT_PROPOSAL.md) and [docs/SECURITY.md](docs/SECURITY.md).
 
-## What It Does
+The Flask frontend uses Jinja2 templates, HTML, CSS, and JavaScript for a responsive dashboard with authentication, sessions, image uploads, Jikan search, and MySQL persistence.
 
-- Create, edit, and delete anime watch rooms
-- Join rooms and track live viewer counts
-- Manage an anime library with favorites, ratings, status, and episode progress
-- Search Jikan for anime titles, poster art, genre, studio, rating, and episode counts
-- Upload local images for room and anime artwork
-- Add calendar events for premieres, finales, and watch parties
-- Post comments and review-style messages with anime-themed reactions
-- Browse discovery rails for trending and group-watch recommendations
-- View library insights such as top rated anime, most used reaction, and next title to finish
-- Register, log in, and save changes through Flask sessions
-- Protect API writes with CSRF tokens
-- Switch between dark and light themes
-
-## Tech Stack
-
-- Python 3
-- Flask
-- MySQL
-- Vanilla JavaScript
-- HTML and CSS
-
-## Project Structure
+## Folder Structure
 
 ```text
-.
-|-- README.md
-|-- index.html
-|-- styles.css
-|-- app.js
-|-- docs/
-|   |-- API_REFERENCE.md
-|   |-- DATABASE_ERD.md
-|   |-- SECURITY_ARCHITECTURE.md
-|   `-- TESTING.md
-`-- otakuhub_flask/
-    |-- app.py
-    |-- auth.py
-    |-- db.py
-    |-- init_db.py
-    |-- requirements.txt
-    |-- .env.example
-    |-- database/
-    |   |-- schema.sql
-    |   `-- seed.sql
-    |-- static/
-    |   |-- app.js
-    |   |-- styles.css
-    |   |-- assets/
-    |   `-- uploads/
-    `-- templates/
-        `-- index.html
+otakuhub_flask/
+  app.py                 Flask app and REST API routes
+  auth.py                User registration, login, logout, and session routes
+  db.py                  MySQL connection helpers
+  init_db.py             Creates and seeds the database
+  requirements.txt       Python dependencies
+  .env.example           Environment variable template
+  database/
+    schema.sql           MySQL tables
+    seed.sql             Demo records
+  static/
+    app.js               Frontend logic connected to /api/state
+    styles.css           UI styles
+    assets/              Local PNG artwork
+  templates/
+    index.html           Flask-rendered page
+  tests/
+    test_auth.py         Authentication and session tests
 ```
 
-## Documentation
+## Setup
 
-- [API Reference](docs/API_REFERENCE.md)
-- [Database ERD](docs/DATABASE_ERD.md)
-- [Security Architecture](docs/SECURITY_ARCHITECTURE.md)
-- [Testing Notes](docs/TESTING.md)
+1. Create and activate a virtual environment:
 
-## Run The Web App
-
-Open a terminal from the repository root:
-
-```powershell
-cd otakuhub_flask
+```bash
 python -m venv .venv
 .venv\Scripts\activate
+```
+
+2. Install dependencies:
+
+```bash
 pip install -r requirements.txt
+```
+
+3. Copy `.env.example` to `.env` and update your MySQL password:
+
+```bash
 copy .env.example .env
 ```
 
-Edit `.env` and set your MySQL password:
+Set a unique `SECRET_KEY` in `.env` before using sessions. Do not commit `.env`; the local file is ignored by Git.
 
-```env
-FLASK_APP=app.py
-FLASK_DEBUG=1
-MYSQL_HOST=localhost
-MYSQL_PORT=3306
-MYSQL_USER=root
-MYSQL_PASSWORD=your_mysql_password
-MYSQL_DATABASE=otakuhub
-```
+4. Create and seed the MySQL database:
 
-Create and seed the database:
-
-```powershell
+```bash
 python init_db.py
 ```
 
-Start Flask:
+Run `python init_db.py` again after schema or seed changes. It recreates the demo database, so only do this when you are okay resetting local demo records.
 
-```powershell
+You can also run the SQL manually:
+
+```bash
+mysql -u root -p < database/schema.sql
+mysql -u root -p otakuhub < database/seed.sql
+```
+
+5. Start Flask:
+
+```bash
 flask run
 ```
 
-Open the app:
+Open:
 
 ```text
 http://127.0.0.1:5000
 ```
 
-Demo login:
+Create the first account through the sign-up form. New accounts receive the `user` role. An existing administrator assigns the `admin` role through the database administration process. The seed data deliberately does not create a default website account.
+
+## User roles
+
+| Role | Access |
+| --- | --- |
+| Guest | Browse public catalogue and sign in/register. |
+| User | Session-backed profile, comments, and local planning interactions. |
+| Admin | All user capabilities plus the Admin dashboard and MySQL-backed shared catalogue updates. |
+
+## API Routes
 
 ```text
-grishav@example.com / otakuhub123
-```
-
-## Database Notes
-
-`python init_db.py` runs both SQL files:
-
-- `otakuhub_flask/database/schema.sql`
-- `otakuhub_flask/database/seed.sql`
-
-Running it again resets the local demo data. That is useful while developing, but do not run it if you are trying to keep local changes in the database.
-
-You can also run the SQL manually:
-
-```powershell
-mysql -u root -p < database/schema.sql
-mysql -u root -p otakuhub < database/seed.sql
-```
-
-## Useful Routes
-
-```text
-GET    /
 GET    /api/health
+GET    /api/csrf-token
+GET    /api/auth/me
+POST   /api/auth/register
+POST   /api/auth/login
+POST   /api/auth/logout
 GET    /api/state
 PUT    /api/state
+
+GET    /api/rooms
+POST   /api/rooms
+PUT    /api/rooms/<room_id>
+DELETE /api/rooms/<room_id>
+
+GET    /api/anime
+POST   /api/anime
+PUT    /api/anime/<anime_id>
+DELETE /api/anime/<anime_id>
+
+GET    /api/videos
+POST   /api/videos
+
+GET    /api/comments
+POST   /api/comments
+PUT    /api/comments/<comment_id>
+DELETE /api/comments/<comment_id>
+
+GET    /api/schedules
+POST   /api/schedules
+PUT    /api/schedules/<schedule_id>
+DELETE /api/schedules/<schedule_id>
+
 GET    /api/news
-GET    /api/discovery
-GET    /api/jikan/search?q=naruto
+GET    /api/users
+GET    /api/users/<user_id>
+GET    /api/profile
 POST   /api/uploads
+GET    /api/jikan/search
 ```
 
-The app also has CRUD routes for auth, rooms, anime, comments, and schedules.
+The frontend loads from `/api/state`. Replacing the shared dashboard state is restricted to administrators and requires a valid CSRF token and logged-in session. Login, registration, and logout are the only authenticated API exceptions to the CSRF check.
 
-## Uploads And Jikan
+### Enabling saved trailer links on an existing database
 
-Uploads are saved to:
+If you created the MySQL database before the trailer feature was added, run
+`database/migrations/001_add_anime_trailer.sql` once. New installations already
+include this column through `database/schema.sql`.
 
-```text
-otakuhub_flask/static/uploads/
+### Adding an anime video
+
+Use `POST /api/videos` to save a video link for any anime. Send `animeTitle`, `title`, and an HTTP(S) `videoUrl`; `episode` and `thumbnailUrl` are optional. For example:
+
+```json
+{
+  "animeTitle": "Frieren: Beyond Journey's End",
+  "title": "Episode 1",
+  "episode": 1,
+  "videoUrl": "https://video.example.com/frieren-episode-1",
+  "thumbnailUrl": "https://images.example.com/frieren.jpg"
+}
 ```
 
-The folder keeps a `.gitkeep`, but uploaded images are ignored by git so test files do not end up in commits.
+## Tests
 
-Jikan search needs the Flask backend running because the browser calls `/api/jikan/search`, and Flask then contacts the Jikan API. If Jikan is down or your network is offline, the rest of the app still works with local/demo data.
-
-## Troubleshooting
-
-If Flask cannot connect to MySQL, check that MySQL is running and that `.env` has the correct username, password, host, port, and database name.
-
-If `flask run` says it cannot find the app, make sure you are inside `otakuhub_flask/` and that `.env` contains `FLASK_APP=app.py`.
-
-If image upload fails, make sure the backend is running and you are logged in. Uploads use a CSRF token from `/api/csrf-token`, so opening the HTML file directly will not support uploads.
-
-If the page loads but database changes do not save, visit:
-
-```text
-http://127.0.0.1:5000/api/health
+```bash
+pytest
 ```
 
-The response should include `"status": "ok"` and `"database": "connected"`.
-
-## Demonstration Video
-
-Add your unlisted YouTube or Google Drive video link here before submission:
-
-```text
-TODO: paste demonstration video link
-```
+The tests mock database calls for auth flows, so they can run without a live MySQL server.

@@ -4,7 +4,7 @@ import secrets
 import time
 from pathlib import Path
 from datetime import datetime, timezone
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 import uuid
@@ -37,6 +37,8 @@ UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
 JIKAN_CACHE = {}
 JIKAN_TTL = 900
+JIKAN_RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+JIKAN_MAX_ATTEMPTS = 2
 
 JIKAN_FALLBACK = [
     {
@@ -133,7 +135,16 @@ def ok(payload=None, status=200):
 
 
 def json_body():
-    return request.get_json(force=True) or {}
+    return request.get_json(silent=True) or {}
+
+
+def admin_required():
+    user = current_user()
+    if not user:
+        return ok({"error": "Login required for this action"}, 401)
+    if user.get("role") != "admin":
+        return ok({"error": "Administrator access is required"}, 403)
+    return None
 
 
 def is_allowed_image(filename):
@@ -165,6 +176,15 @@ def protect_api_writes():
     return ok({"error": "CSRF token missing or invalid"}, 403)
 
 
+@app.after_request
+def apply_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    return response
+
+
 def parse_reactions(value):
     if value is None:
         return {}
@@ -186,6 +206,7 @@ def room_to_json(row):
         "viewers": row["viewers"],
         "status": row["status"],
         "imageUrl": row.get("image_url"),
+        "trailerUrl": row.get("trailer_url"),
         "reactions": parse_reactions(row["reactions"]),
     }
 
@@ -261,9 +282,30 @@ def fallback_jikan_items(query):
     return matches or JIKAN_FALLBACK[:3]
 
 
+def fetch_jikan_payload(url):
+    """Fetch Jikan once more for transient upstream and rate-limit failures."""
+    last_error = None
+    for attempt in range(JIKAN_MAX_ATTEMPTS):
+        try:
+            req = Request(url, headers={"User-Agent": "OtakuHub/1.0", "Accept": "application/json"})
+            with urlopen(req, timeout=8) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except HTTPError as error:
+            last_error = error
+            if error.code not in JIKAN_RETRYABLE_STATUS_CODES:
+                break
+        except (OSError, URLError, json.JSONDecodeError) as error:
+            last_error = error
+
+        if attempt < JIKAN_MAX_ATTEMPTS - 1:
+            time.sleep(0.5)
+    raise last_error
+
+
 @app.errorhandler(Error)
 def database_error(error):
-    return ok({"error": "Database error", "detail": str(error)}, 500)
+    app.logger.exception("Database request failed: %s", error)
+    return ok({"error": "Database error"}, 500)
 
 
 @app.route("/")
@@ -326,13 +368,11 @@ def search_jikan():
 
     url = f"https://api.jikan.moe/v4/anime?q={quote(query)}&limit=8&sfw=true"
     try:
-        req = Request(url, headers={"User-Agent": "OtakuHub/1.0"})
-        with urlopen(req, timeout=8) as response:
-            payload = json.loads(response.read().decode("utf-8"))
+        payload = fetch_jikan_payload(url)
     except (OSError, URLError, json.JSONDecodeError) as error:
         items = fallback_jikan_items(query)
         JIKAN_CACHE[cache_key] = {"created_at": time.time(), "items": items}
-        return ok({"items": items, "source": "local-fallback", "detail": str(error)})
+        return ok({"items": items, "source": "local-fallback", "detail": "Jikan is temporarily unavailable."})
 
     items = []
     for anime in payload.get("data", []):
@@ -347,6 +387,7 @@ def search_jikan():
             "genre": ", ".join(genre.get("name") for genre in anime.get("genres", [])[:2]) or "Anime",
             "studio": ", ".join(studio.get("name") for studio in anime.get("studios", [])[:2]) or "Studio TBA",
             "imageUrl": images.get("large_image_url") or images.get("image_url"),
+            "trailerUrl": anime.get("trailer", {}).get("url"),
             "malUrl": anime.get("url"),
         })
 
@@ -356,6 +397,9 @@ def search_jikan():
 
 @app.get("/api/users")
 def list_users():
+    access_error = admin_required()
+    if access_error:
+        return access_error
     return ok([user_to_json(row) for row in fetch_all("SELECT * FROM users ORDER BY created_at DESC")])
 
 
@@ -369,9 +413,9 @@ def get_user(user_id):
 
 @app.get("/api/profile")
 def get_profile():
-    user = fetch_one("SELECT * FROM users ORDER BY created_at LIMIT 1")
+    user = current_user()
     if not user:
-        return ok({"error": "No profile found"}, 404)
+        return ok({"error": "Login required"}, 401)
     return ok(user_to_json(user))
 
 
@@ -394,6 +438,9 @@ def get_state():
 
 @app.put("/api/state")
 def replace_state():
+    access_error = admin_required()
+    if access_error:
+        return access_error
     data = json_body()
     rooms = data.get("rooms", [])
     anime = data.get("anime", [])
@@ -431,8 +478,8 @@ def replace_state():
         )
         cursor.executemany(
             """
-            INSERT INTO anime_lists (id, title, episodes, watched, rating, status, favorite, genre, studio, image_url)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO anime_lists (id, title, episodes, watched, rating, status, favorite, genre, studio, image_url, trailer_url)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             [
                 (
@@ -446,6 +493,7 @@ def replace_state():
                     item.get("genre", "Shonen"),
                     item.get("studio", "Studio TBA"),
                     item.get("imageUrl"),
+                    item.get("trailerUrl"),
                 )
                 for item in anime
             ],
@@ -601,10 +649,10 @@ def create_anime():
     anime_id = data.get("id", new_id("anime"))
     execute(
         """
-        INSERT INTO anime_lists (id, title, episodes, watched, rating, status, favorite, genre, studio, image_url)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO anime_lists (id, title, episodes, watched, rating, status, favorite, genre, studio, image_url, trailer_url)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
-        (anime_id, data["title"], int(data["episodes"]), int(data.get("watched", 0)), float(data.get("rating", 0)), data.get("status", "planned"), bool(data.get("favorite", False)), data.get("genre", "Shonen"), data.get("studio", "Studio TBA"), data.get("imageUrl")),
+        (anime_id, data["title"], int(data["episodes"]), int(data.get("watched", 0)), float(data.get("rating", 0)), data.get("status", "planned"), bool(data.get("favorite", False)), data.get("genre", "Shonen"), data.get("studio", "Studio TBA"), data.get("imageUrl"), data.get("trailerUrl")),
     )
     return ok(anime_to_json(fetch_one("SELECT * FROM anime_lists WHERE id = %s", (anime_id,))), 201)
 
@@ -615,10 +663,10 @@ def update_anime(anime_id):
     execute(
         """
         UPDATE anime_lists
-        SET title = %s, episodes = %s, watched = %s, rating = %s, status = %s, favorite = %s, genre = %s, studio = %s, image_url = %s
+        SET title = %s, episodes = %s, watched = %s, rating = %s, status = %s, favorite = %s, genre = %s, studio = %s, image_url = %s, trailer_url = %s
         WHERE id = %s
         """,
-        (data["title"], int(data["episodes"]), int(data.get("watched", 0)), float(data.get("rating", 0)), data.get("status", "planned"), bool(data.get("favorite", False)), data.get("genre", "Shonen"), data.get("studio", "Studio TBA"), data.get("imageUrl"), anime_id),
+        (data["title"], int(data["episodes"]), int(data.get("watched", 0)), float(data.get("rating", 0)), data.get("status", "planned"), bool(data.get("favorite", False)), data.get("genre", "Shonen"), data.get("studio", "Studio TBA"), data.get("imageUrl"), data.get("trailerUrl"), anime_id),
     )
     return ok(anime_to_json(fetch_one("SELECT * FROM anime_lists WHERE id = %s", (anime_id,))))
 

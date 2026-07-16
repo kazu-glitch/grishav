@@ -46,6 +46,7 @@ CREATE TABLE anime_lists (
   genre VARCHAR(100) NOT NULL DEFAULT 'Shonen',
   studio VARCHAR(120) NOT NULL DEFAULT 'Studio TBA',
   image_url VARCHAR(500),
+  trailer_url VARCHAR(500),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -83,3 +84,11 @@ CREATE TABLE notifications (
   message VARCHAR(255) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- These indexes match the sort and filtering paths used by the API.
+CREATE INDEX idx_watch_rooms_status_created ON watch_rooms (status, created_at);
+CREATE INDEX idx_anime_lists_status_favorite ON anime_lists (status, favorite);
+CREATE INDEX idx_anime_videos_title_created ON anime_videos (anime_title, created_at);
+CREATE INDEX idx_comments_target_created ON comments (target, created_at_ms);
+CREATE INDEX idx_schedules_date_time ON schedules (date, time);
+CREATE INDEX idx_notifications_created ON notifications (created_at);

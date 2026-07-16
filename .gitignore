@@ -1,22 +1,5 @@
-New project/
-screenshots/
 .venv/
+.pytest_cache/
 __pycache__/
 *.pyc
-.pytest_cache/
 .env
-*.log
-.DS_Store
-Thumbs.db
-otakuhub_flask/static/uploads/
-.merge_sources/
-otakuhub_clean/
-eng.traineddata
-exam_*/
-exam_*.txt
-ocr_*
-extract_exam_frames.js
-make_exam_pdf*.py
-ST5039CMD_*.pdf
-otakuhub_flask/static/uploads/*
-!otakuhub_flask/static/uploads/.gitkeep

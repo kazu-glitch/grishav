@@ -1,4 +1,6 @@
 const STORAGE_KEY = "otakuhub-state-v2";
+const API_BASE = "/api";
+let csrfToken = "";
 
 const animePosters = {
   naruto: "https://cdn.myanimelist.net/images/anime/1141/142503l.jpg",
@@ -29,6 +31,33 @@ const news = [
   }
 ];
 
+const discoveryRails = [
+  {
+    title: "Trending with hosts",
+    items: [
+      { title: "Frieren: Beyond Journey's End", tag: "Fantasy", match: 96 },
+      { title: "Demon Slayer: Hashira Training Arc", tag: "Action", match: 91 },
+      { title: "Jujutsu Kaisen", tag: "Supernatural", match: 89 }
+    ]
+  },
+  {
+    title: "Good for group nights",
+    items: [
+      { title: "Haikyu!!", tag: "Sports", match: 94 },
+      { title: "Spy x Family", tag: "Comedy", match: 90 },
+      { title: "Mob Psycho 100", tag: "Action Comedy", match: 88 }
+    ]
+  },
+  {
+    title: "Short watch commitments",
+    items: [
+      { title: "Cyberpunk: Edgerunners", tag: "Sci-fi", match: 87 },
+      { title: "Odd Taxi", tag: "Mystery", match: 85 },
+      { title: "Erased", tag: "Thriller", match: 83 }
+    ]
+  }
+];
+
 const seedState = {
   rooms: [
     { id: "room-1", name: "Hidden Leaf Watch Room", anime: "Naruto", episode: 19, capacity: 42, viewers: 31, status: "Live", imageUrl: animePosters.naruto, reactions: { "Ninja Hype": 24, "Nen Boost": 6 } },
@@ -42,7 +71,7 @@ const seedState = {
     { id: "anime-4", title: "Hunter x Hunter", episodes: 148, watched: 36, rating: 9.0, status: "watching", favorite: true, genre: "Action Adventure", studio: "Madhouse", imageUrl: animePosters.hunterXHunter }
   ],
   comments: [
-    { id: "comment-1", author: "Mika", target: "Naruto", message: "The Naruto room needs a Team 7 rewatch after this arc.", reaction: "Ninja Hype", createdAt: Date.now() - 1000 * 60 * 38 },
+    { id: "comment-1", author: "Grishav", target: "Naruto", message: "The Naruto room needs a Team 7 rewatch after this arc.", reaction: "Ninja Hype", createdAt: Date.now() - 1000 * 60 * 38 },
     { id: "comment-2", author: "Ren", target: "One Piece", message: "Grand Line nights are perfect for long watch parties.", reaction: "Pirate Crew", createdAt: Date.now() - 1000 * 60 * 92 },
     { id: "comment-3", author: "Aiko", target: "Attack on Titan", message: "That reveal deserves a spoiler-free review thread.", reaction: "Titan Shock", createdAt: Date.now() - 1000 * 60 * 180 }
   ],
@@ -56,11 +85,14 @@ const seedState = {
     "Ren bookmarked One Piece Ep 208.",
     "Admin review queue has 3 fresh comments."
   ],
+  discovery: discoveryRails,
   theme: "dark"
 };
 
 let state = loadState();
 let activeAnimeFilter = "all";
+let apiEnabled = false;
+let currentUser = null;
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -77,6 +109,55 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (!apiEnabled) return;
+  if (!currentUser) {
+    notify("Login required to save changes to MySQL.");
+    return;
+  }
+  if (!isAdmin()) {
+    notify("Only administrators can update the shared catalogue.");
+    return;
+  }
+  fetch(`${API_BASE}/state`, {
+    method: "PUT",
+    headers: apiHeaders(),
+    body: JSON.stringify(state)
+  }).then(async (response) => {
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || "Save failed");
+    }
+  }).catch((error) => {
+    notify(error.message);
+  });
+}
+
+function apiHeaders(extra = {}) {
+  return { "Content-Type": "application/json", "X-CSRFToken": csrfToken, ...extra };
+}
+
+async function loadCsrfToken() {
+  try {
+    const response = await fetch(`${API_BASE}/csrf-token`);
+    if (!response.ok) throw new Error("CSRF unavailable");
+    const payload = await response.json();
+    csrfToken = payload.csrf_token || "";
+  } catch {
+    csrfToken = "";
+  }
+}
+
+async function loadBackendState() {
+  try {
+    const response = await fetch(`${API_BASE}/state`);
+    if (!response.ok) throw new Error("Backend unavailable");
+    const backendState = await response.json();
+    state = { ...structuredClone(seedState), ...backendState };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    apiEnabled = true;
+  } catch {
+    apiEnabled = false;
+  }
 }
 
 function uid(prefix) {
@@ -87,6 +168,16 @@ function posterFor(item, index = 0) {
   if (item?.imageUrl) return item.imageUrl;
   const values = Object.values(animePosters);
   return values[index % values.length];
+}
+
+function trailerFor(anime) {
+  try {
+    const trailer = new URL(anime.trailerUrl);
+    if (["youtube.com", "www.youtube.com", "youtu.be"].includes(trailer.hostname)) return trailer.href;
+  } catch {
+    // Fall back to a YouTube search when no direct trailer is saved.
+  }
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(`${anime.title} official trailer`)}`;
 }
 
 function reactionImage(key) {
@@ -128,11 +219,14 @@ function notify(message) {
 
 function render() {
   document.documentElement.classList.toggle("light", state.theme === "light");
+  renderAuth();
   renderStats();
   renderRooms();
   renderAnime();
+  renderAnimeInsights();
   renderSchedules();
   renderComments();
+  renderDiscovery();
   renderNews();
   renderProfile();
   renderAdmin();
@@ -182,6 +276,7 @@ function roomCard(room, index, full) {
         <p>${room.anime} - Episode ${room.episode}</p>
         ${full ? `<div class="reaction-row">${reactionButtons}</div>
         <div class="card-actions">
+          <button type="button" data-join-room="${room.id}">Join</button>
           <button type="button" data-edit-room="${room.id}">Edit</button>
           <button type="button" data-delete-room="${room.id}">Delete</button>
         </div>` : ""}
@@ -218,6 +313,7 @@ function renderAnime() {
           </div>
           <div class="progress"><span style="width:${progress}%"></span></div>
           <div class="card-actions">
+            <a class="trailer-link" href="${trailerFor(item)}" target="_blank" rel="noopener noreferrer" aria-label="Watch ${item.title} trailer on YouTube">▶ Trailer</a>
             <button type="button" data-progress-anime="${item.id}">+ Episode</button>
             <button type="button" data-bookmark-anime="${item.id}">Bookmark</button>
             <button type="button" data-edit-anime="${item.id}">Edit</button>
@@ -245,6 +341,36 @@ function renderAnimeSummary() {
   `).join("");
 }
 
+function renderAnimeInsights() {
+  const topRated = [...state.anime].sort((a, b) => Number(b.rating) - Number(a.rating))[0];
+  const nextToFinish = [...state.anime]
+    .filter((item) => Number(item.watched) < Number(item.episodes))
+    .sort((a, b) => (Number(b.watched) / Number(b.episodes)) - (Number(a.watched) / Number(a.episodes)))[0];
+  const reactionTotals = state.rooms.reduce((totals, room) => {
+    Object.entries(room.reactions || {}).forEach(([key, value]) => {
+      totals[key] = (totals[key] || 0) + Number(value);
+    });
+    return totals;
+  }, {});
+  const topReaction = Object.entries(reactionTotals).sort((a, b) => b[1] - a[1])[0];
+  const openRooms = state.rooms.filter((room) => room.status !== "Private").length;
+
+  const cards = [
+    ["Top rated", topRated ? `${topRated.title} (${topRated.rating}/10)` : "No ratings yet", "Best score in the current library."],
+    ["Finish next", nextToFinish ? `${nextToFinish.title} - ${nextToFinish.episodes - nextToFinish.watched} episodes left` : "All caught up", "Closest title to completion."],
+    ["Fan reaction", topReaction ? `${topReaction[0]} (${topReaction[1]})` : "No reactions yet", "Most used watch room reaction."],
+    ["Open rooms", `${openRooms} available`, "Live or scheduled rooms people can join."]
+  ];
+
+  $("#animeInsights").innerHTML = cards.map(([title, value, text]) => `
+    <article class="insight-card">
+      <span>${title}</span>
+      <strong>${value}</strong>
+      <p>${text}</p>
+    </article>
+  `).join("");
+}
+
 function recommendationScore(item) {
   const favoriteBoost = item.favorite ? 9 : 0;
   const progressBoost = item.status === "watching" ? 7 : item.status === "completed" ? 5 : 2;
@@ -261,7 +387,7 @@ function renderSchedules() {
         <div>
           <span class="badge">${schedule.type}</span>
           <h4>${schedule.title}</h4>
-          <p>${formatDateTime(schedule)} · ${timeUntil(schedule)}</p>
+          <p>${formatDateTime(schedule)} - ${timeUntil(schedule)}</p>
         </div>
         <div class="card-actions">
           <button type="button" data-edit-schedule="${schedule.id}">Edit</button>
@@ -277,7 +403,7 @@ function renderCountdown() {
   $("#countdownList").innerHTML = schedules.map((schedule) => `
     <article class="activity-item">
       <h4>${schedule.title}</h4>
-      <p>${formatDateTime(schedule)} · <strong>${timeUntil(schedule)}</strong></p>
+      <p>${formatDateTime(schedule)} - <strong>${timeUntil(schedule)}</strong></p>
     </article>
   `).join("") || emptyState("No scheduled countdowns.");
   const next = schedules[0];
@@ -302,6 +428,26 @@ function renderComments() {
   `).join("") || emptyState("No chat messages yet.");
 }
 
+function renderDiscovery() {
+  const rails = state.discovery?.length ? state.discovery : discoveryRails;
+  $("#discoveryRails").innerHTML = rails.map((rail) => `
+    <article class="discovery-rail">
+      <h4>${rail.title}</h4>
+      <div class="discovery-list">
+        ${rail.items.map((item) => `
+          <button class="discovery-item" type="button" data-discovery-title="${item.title}">
+            <span>
+              <strong>${item.title}</strong>
+              <small>${item.tag}</small>
+            </span>
+            <b>${item.match}%</b>
+          </button>
+        `).join("")}
+      </div>
+    </article>
+  `).join("");
+}
+
 function renderNews() {
   $("#newsList").innerHTML = news.map((item) => `
     <article class="news-item">
@@ -312,6 +458,20 @@ function renderNews() {
 }
 
 function renderProfile() {
+  const profileTitle = $("#profileTitle");
+  const profileUsername = $("#profileUsername");
+  const profileBio = $("#profileBio");
+  const profileEyebrow = $("#profileEyebrow");
+  const profileAvatar = $("#profileAvatar");
+  const user = currentUser;
+
+  profileTitle.textContent = user?.displayName || "OtakuHub member";
+  profileUsername.textContent = user ? `@${user.username}` : "@guest";
+  profileBio.textContent = user?.bio || (user ? "OtakuHub member" : "Sign in to see your profile.");
+  profileEyebrow.textContent = user ? `${user.role} profile` : "Your profile";
+  profileAvatar.src = user?.avatarUrl || "/static/assets/avatar.png";
+  profileAvatar.alt = user ? `${user.displayName}'s avatar` : "OtakuHub user avatar";
+
   const favoriteCount = state.anime.filter((item) => item.favorite).length;
   const completedEpisodes = state.anime.reduce((sum, item) => sum + Number(item.watched), 0);
   $("#activityList").innerHTML = [
@@ -328,6 +488,10 @@ function renderProfile() {
 }
 
 function renderAdmin() {
+  if (!isAdmin()) {
+    $("#adminGrid").innerHTML = "";
+    return;
+  }
   const liveRooms = state.rooms.filter((room) => room.status === "Live").length;
   const ratings = state.anime.map((item) => Number(item.rating));
   const avgRating = ratings.length ? (ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length).toFixed(1) : "0.0";
@@ -370,6 +534,97 @@ function populateForm(form, values) {
     if (input.type === "checkbox") input.checked = Boolean(value);
     else input.value = value;
   });
+  updateUploadPreview(form);
+}
+
+function renderAuth() {
+  const authButton = $("#authButton");
+  const logoutButton = $("#logoutButton");
+  const authStatus = $("#authStatus");
+  if (!authButton || !logoutButton) return;
+
+  authButton.textContent = currentUser ? currentUser.username : "Login";
+  logoutButton.classList.toggle("hidden", !currentUser);
+  const canAccessAdmin = isAdmin();
+  $$('[data-admin-only]').forEach((element) => {
+    element.hidden = !canAccessAdmin;
+  });
+  $("#resetDemoBtn").hidden = !canAccessAdmin;
+  if (authStatus && currentUser) {
+    authStatus.textContent = `Logged in as ${currentUser.username} (${currentUser.role}).`;
+  }
+}
+
+function isAdmin() {
+  return currentUser?.role === "admin";
+}
+
+async function loadCurrentUser() {
+  try {
+    const response = await fetch(`${API_BASE}/auth/me`);
+    const payload = await response.json();
+    currentUser = response.ok ? payload.user : null;
+  } catch {
+    currentUser = null;
+  }
+}
+
+async function sendAuthRequest(path, data) {
+  const response = await fetch(`${API_BASE}/auth/${path}`, {
+    method: "POST",
+    headers: apiHeaders(),
+    body: JSON.stringify(data)
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "Auth request failed.");
+  return payload;
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  // Event.currentTarget can be cleared after an await, so retain the form
+  // before making the network request.
+  const form = event.currentTarget;
+  const authStatus = $("#authStatus");
+  const data = formData(form);
+  try {
+    const payload = await sendAuthRequest("login", data);
+    currentUser = payload.user;
+    form.reset();
+    $("#authModal").close();
+    renderAuth();
+    notify(`Welcome back, ${currentUser.displayName}.`);
+  } catch (error) {
+    authStatus.textContent = error.message;
+  }
+}
+
+async function handleRegister(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const authStatus = $("#authStatus");
+  const data = formData(form);
+  try {
+    const payload = await sendAuthRequest("register", data);
+    currentUser = payload.user;
+    form.reset();
+    $("#authModal").close();
+    renderAuth();
+    notify(`Account created for ${currentUser.displayName}.`);
+  } catch (error) {
+    authStatus.textContent = error.message;
+  }
+}
+
+async function handleLogout() {
+  try {
+    await sendAuthRequest("logout", {});
+  } catch {
+    // Local UI still clears the user when the backend is unavailable.
+  }
+  currentUser = null;
+  renderAuth();
+  notify("Logged out.");
 }
 
 function formData(form) {
@@ -383,13 +638,60 @@ function formData(form) {
 function resetForm(form, title) {
   form.reset();
   form.elements.id.value = "";
+  if (form.elements.imageUrl) form.elements.imageUrl.value = "";
+  updateUploadPreview(form);
+  if (form.id === "animeForm") $("#jikanResults").innerHTML = "";
   const heading = form.querySelector("h3");
   if (heading) heading.textContent = title;
 }
 
-function handleRoomSubmit(event) {
+async function uploadSelectedImage(form) {
+  const fileInput = form.elements.imageFile;
+  const file = fileInput?.files?.[0];
+  if (!file) return form.elements.imageUrl?.value || "";
+  if (!apiEnabled || !csrfToken) {
+    notify("Start the Flask backend to upload device images.");
+    return form.elements.imageUrl?.value || "";
+  }
+
+  const body = new FormData();
+  body.append("image", file);
+  const response = await fetch(`${API_BASE}/uploads`, {
+    method: "POST",
+    headers: { "X-CSRFToken": csrfToken },
+    body
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "Image upload failed");
+  form.elements.imageUrl.value = payload.url;
+  fileInput.value = "";
+  updateUploadPreview(form);
+  return payload.url;
+}
+
+function updateUploadPreview(form) {
+  const preview = document.querySelector(`[data-preview-for="${form.id}"]`);
+  if (!preview) return;
+  const imageUrl = form.elements.imageUrl?.value;
+  const file = form.elements.imageFile?.files?.[0];
+  if (file) {
+    preview.innerHTML = `<span>Selected: ${file.name}</span>`;
+    return;
+  }
+  preview.innerHTML = imageUrl ? `<img src="${imageUrl}" alt="Selected artwork preview"><span>Current image</span>` : "";
+}
+
+async function handleRoomSubmit(event) {
   event.preventDefault();
+  const form = event.currentTarget;
   const data = formData(event.currentTarget);
+  let imageUrl = data.imageUrl || state.rooms.find((item) => item.id === data.id)?.imageUrl || "";
+  try {
+    imageUrl = await uploadSelectedImage(form) || imageUrl;
+  } catch (error) {
+    notify(error.message);
+    return;
+  }
   const room = {
     id: data.id || uid("room"),
     name: data.name,
@@ -398,20 +700,28 @@ function handleRoomSubmit(event) {
     capacity: Number(data.capacity),
     viewers: Math.max(1, Math.round(Number(data.capacity) * 0.62)),
     status: data.status,
-    imageUrl: state.anime.find((item) => item.title.toLowerCase() === data.anime.toLowerCase())?.imageUrl || state.rooms.find((item) => item.id === data.id)?.imageUrl || animePosters.naruto,
+    imageUrl: imageUrl || state.anime.find((item) => item.title.toLowerCase() === data.anime.toLowerCase())?.imageUrl || animePosters.naruto,
     reactions: state.rooms.find((item) => item.id === data.id)?.reactions || {}
   };
   state.rooms = data.id ? state.rooms.map((item) => item.id === data.id ? room : item) : [room, ...state.rooms];
   saveState();
-  event.currentTarget.closest("dialog").close();
-  resetForm(event.currentTarget, "Create Room");
+  form.closest("dialog").close();
+  resetForm(form, "Create Room");
   render();
   notify(`${room.name} saved.`);
 }
 
-function handleAnimeSubmit(event) {
+async function handleAnimeSubmit(event) {
   event.preventDefault();
+  const form = event.currentTarget;
   const data = formData(event.currentTarget);
+  let imageUrl = data.imageUrl || state.anime.find((item) => item.id === data.id)?.imageUrl || "";
+  try {
+    imageUrl = await uploadSelectedImage(form) || imageUrl;
+  } catch (error) {
+    notify(error.message);
+    return;
+  }
   const anime = {
     id: data.id || uid("anime"),
     title: data.title,
@@ -420,16 +730,65 @@ function handleAnimeSubmit(event) {
     rating: Number(data.rating).toFixed(1),
     status: data.status,
     favorite: Boolean(data.favorite),
-    genre: state.anime.find((item) => item.id === data.id)?.genre || "Shonen",
-    studio: state.anime.find((item) => item.id === data.id)?.studio || "Studio TBA",
-    imageUrl: state.anime.find((item) => item.id === data.id)?.imageUrl || posterFor(null, state.anime.length)
+    genre: data.genre || state.anime.find((item) => item.id === data.id)?.genre || "Shonen",
+    studio: data.studio || state.anime.find((item) => item.id === data.id)?.studio || "Studio TBA",
+    imageUrl: imageUrl || posterFor(null, state.anime.length),
+    trailerUrl: data.trailerUrl.trim()
   };
   state.anime = data.id ? state.anime.map((item) => item.id === data.id ? anime : item) : [anime, ...state.anime];
   saveState();
-  event.currentTarget.closest("dialog").close();
-  resetForm(event.currentTarget, "Add Anime");
+  form.closest("dialog").close();
+  resetForm(form, "Add Anime");
   render();
   notify(`${anime.title} saved to your anime list.`);
+}
+
+async function searchJikanForAnime() {
+  const form = $("#animeForm");
+  const query = form.elements.title.value.trim();
+  const results = $("#jikanResults");
+  if (query.length < 2) {
+    results.innerHTML = `<div class="empty-state">Enter an anime title first.</div>`;
+    return;
+  }
+  results.innerHTML = `<div class="empty-state">Searching Jikan...</div>`;
+  try {
+    const response = await fetch(`${API_BASE}/jikan/search?q=${encodeURIComponent(query)}`);
+    const payload = await response.json();
+    if (!response.ok || payload.error) throw new Error(payload.error || "Jikan search failed");
+    const items = Array.isArray(payload) ? payload : payload.items || [];
+    const status = payload.source === "local-fallback"
+      ? `<div class="empty-state">Jikan is temporarily unavailable. Showing matches from the OtakuHub catalogue.</div>`
+      : "";
+    results.innerHTML = status + (items.map((item) => `
+      <button class="jikan-result" type="button"
+        data-jikan-title="${encodeURIComponent(item.title || "")}"
+        data-jikan-episodes="${item.episodes || 1}"
+        data-jikan-rating="${item.rating || 7}"
+        data-jikan-genre="${encodeURIComponent(item.genre || "Anime")}"
+        data-jikan-studio="${encodeURIComponent(item.studio || "Studio TBA")}" 
+        data-jikan-image="${encodeURIComponent(item.imageUrl || "")}"
+        data-jikan-trailer="${encodeURIComponent(item.trailerUrl || "")}">
+        <img src="${item.imageUrl || animePosters.naruto}" alt="${item.title} poster">
+        <span><strong>${item.title}</strong><small>${item.genre} - ${item.studio}</small></span>
+      </button>
+    `).join("") || `<div class="empty-state">No Jikan results found.</div>`);
+  } catch (error) {
+    results.innerHTML = `<div class="empty-state">${error.message}</div>`;
+  }
+}
+
+function applyJikanResult(button) {
+  const form = $("#animeForm");
+  form.elements.title.value = decodeURIComponent(button.dataset.jikanTitle || "");
+  form.elements.episodes.value = button.dataset.jikanEpisodes || 1;
+  form.elements.rating.value = Number(button.dataset.jikanRating || 7).toFixed(1);
+  form.elements.genre.value = decodeURIComponent(button.dataset.jikanGenre || "Anime");
+  form.elements.studio.value = decodeURIComponent(button.dataset.jikanStudio || "Studio TBA");
+  form.elements.imageUrl.value = decodeURIComponent(button.dataset.jikanImage || "");
+  form.elements.trailerUrl.value = decodeURIComponent(button.dataset.jikanTrailer || "");
+  updateUploadPreview(form);
+  notify(`${form.elements.title.value} details added from Jikan.`);
 }
 
 function handleScheduleSubmit(event) {
@@ -522,6 +881,12 @@ function bindEvents() {
   $("#animeForm").addEventListener("submit", handleAnimeSubmit);
   $("#scheduleForm").addEventListener("submit", handleScheduleSubmit);
   $("#commentForm").addEventListener("submit", handleCommentSubmit);
+  $("#loginForm").addEventListener("submit", handleLogin);
+  $("#registerForm").addEventListener("submit", handleRegister);
+  $("#logoutButton").addEventListener("click", handleLogout);
+  $("#roomForm").elements.imageFile.addEventListener("change", () => updateUploadPreview($("#roomForm")));
+  $("#animeForm").elements.imageFile.addEventListener("change", () => updateUploadPreview($("#animeForm")));
+  $("#jikanSearchBtn").addEventListener("click", searchJikanForAnime);
   $("#searchInput").addEventListener("input", () => {
     renderRooms();
     renderAnime();
@@ -530,7 +895,7 @@ function bindEvents() {
   $("#quickChatForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const message = new FormData(event.currentTarget).get("message");
-    state.comments.unshift({ id: uid("comment"), author: "Mika", target: "Global Chat", message, reaction: "Ninja Hype", createdAt: Date.now() });
+    state.comments.unshift({ id: uid("comment"), author: currentUser?.displayName || "Grishav", target: "Global Chat", message, reaction: "Ninja Hype", createdAt: Date.now() });
     saveState();
     event.currentTarget.reset();
     render();
@@ -549,6 +914,7 @@ function bindEvents() {
   });
 
   $("#resetDemoBtn").addEventListener("click", () => {
+    if (!isAdmin()) return;
     state = structuredClone(seedState);
     saveState();
     render();
@@ -573,6 +939,7 @@ function handleDelegatedActions(event) {
   if (dataset.editRoom) editRoom(dataset.editRoom);
   if (dataset.deleteRoom) removeItem("rooms", dataset.deleteRoom, "Watch room deleted.");
   if (dataset.reactRoom) reactToRoom(dataset.reactRoom, dataset.reaction);
+  if (dataset.joinRoom) joinRoom(dataset.joinRoom);
 
   if (dataset.editAnime) editAnime(dataset.editAnime);
   if (dataset.deleteAnime) removeItem("anime", dataset.deleteAnime, "Anime removed from list.");
@@ -584,6 +951,8 @@ function handleDelegatedActions(event) {
 
   if (dataset.editComment) editComment(dataset.editComment);
   if (dataset.deleteComment) removeItem("comments", dataset.deleteComment, "Comment deleted.");
+  if (dataset.jikanTitle) applyJikanResult(target);
+  if (dataset.discoveryTitle) startAnimeFromDiscovery(dataset.discoveryTitle);
 }
 
 function removeItem(collection, id, message) {
@@ -604,6 +973,19 @@ function reactToRoom(id, reaction) {
   notify(`${reaction} reaction added.`);
 }
 
+function joinRoom(id) {
+  const room = state.rooms.find((item) => item.id === id);
+  if (!room) return;
+  state.rooms = state.rooms.map((item) => {
+    if (item.id !== id) return item;
+    const viewers = Math.min(Number(item.capacity), Number(item.viewers || 0) + 1);
+    return { ...item, viewers, status: item.status === "Private" ? "Private" : "Live" };
+  });
+  saveState();
+  render();
+  notify(`Joined ${room.name}.`);
+}
+
 function progressAnime(id) {
   state.anime = state.anime.map((item) => item.id === id ? { ...item, watched: Math.min(item.episodes, Number(item.watched) + 1) } : item);
   saveState();
@@ -616,7 +998,7 @@ function bookmarkAnime(id) {
   if (!anime) return;
   state.comments.unshift({
     id: uid("comment"),
-    author: "Mika",
+    author: currentUser?.displayName || "Grishav",
     target: anime.title,
     message: `Bookmarked episode ${anime.watched || 1} for the next watch party.`,
     reaction: "Ninja Hype",
@@ -627,13 +1009,28 @@ function bookmarkAnime(id) {
   notify(`${anime.title} episode bookmarked.`);
 }
 
+function startAnimeFromDiscovery(title) {
+  resetForm($("#animeForm"), "Add Anime");
+  $("#animeModalTitle").textContent = "Add Anime";
+  $("#animeForm").elements.title.value = title;
+  $("#animeForm").elements.status.value = "planned";
+  $("#animeForm").elements.episodes.value = 12;
+  $("#animeForm").elements.watched.value = 0;
+  $("#animeForm").elements.rating.value = 8.0;
+  openModal("animeModal");
+}
+
 function setView(view) {
+  if (view === "admin" && !isAdmin()) view = "dashboard";
   $$(".view").forEach((section) => section.classList.toggle("active", section.id === view));
   $$(".nav-link").forEach((link) => link.classList.toggle("active", link.dataset.view === view));
   window.location.hash = view;
 }
 
-function boot() {
+async function boot() {
+  await loadCsrfToken();
+  await loadBackendState();
+  await loadCurrentUser();
   bindEvents();
   render();
   const initialView = location.hash.replace("#", "") || "dashboard";
