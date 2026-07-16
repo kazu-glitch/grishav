@@ -22,7 +22,6 @@ otakuhub_flask/
   static/
     app.js               Frontend logic connected to /api/state
     styles.css           UI styles
-    assets/              Local PNG artwork
   templates/
     index.html           Flask-rendered page
   tests/
