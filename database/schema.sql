@@ -18,7 +18,8 @@ CREATE TABLE users (
   bio TEXT,
   avatar_url VARCHAR(255),
   role ENUM('user', 'moderator', 'admin') NOT NULL DEFAULT 'user',
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_login_at TIMESTAMP NULL DEFAULT NULL
 );
 
 CREATE TABLE watch_rooms (
