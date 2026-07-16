@@ -157,7 +157,7 @@ Use `POST /api/videos` to save a video link for any anime. Send `animeTitle`, `t
 ## Tests
 
 ```bash
-pytest
+python -m pytest
 ```
 
-The tests mock database calls for auth flows, so they can run without a live MySQL server.
+Always run tests through the active virtual environment with `python -m pytest`. The pytest configuration adds the project root to Python's import path, so the Flask modules load consistently. The tests mock database calls for auth flows, so they can run without a live MySQL server.
