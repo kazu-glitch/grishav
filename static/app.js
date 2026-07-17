@@ -902,11 +902,11 @@ async function searchJikanForAnime() {
   results.innerHTML = `<div class="empty-state">Searching Jikan...</div>`;
   try {
     const response = await fetch(`${API_BASE}/jikan/search?q=${encodeURIComponent(query)}`);
-    const payload = await response.json();
+    const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload.error) throw new Error(payload.error || "Jikan search failed");
     const items = Array.isArray(payload) ? payload : payload.items || [];
-    const status = payload.source === "local-fallback"
-      ? `<div class="empty-state">Jikan is temporarily unavailable. Showing matches from the OtakuHub catalogue.</div>`
+    const status = payload.source === "secondary"
+      ? `<div class="empty-state">Jikan is temporarily busy. Matching anime results are shown from the backup catalogue.</div>`
       : "";
     results.innerHTML = status + (items.map((item) => `
       <button class="jikan-result" type="button"
@@ -917,8 +917,8 @@ async function searchJikanForAnime() {
         data-jikan-studio="${encodeURIComponent(item.studio || "Studio TBA")}" 
         data-jikan-image="${encodeURIComponent(item.imageUrl || "")}"
         data-jikan-trailer="${encodeURIComponent(item.trailerUrl || "")}">
-        <img src="${item.imageUrl || animePosters.naruto}" alt="${item.title} poster">
-        <span><strong>${item.title}</strong><small>${item.genre} - ${item.studio}</small></span>
+        <img src="${escapeHtml(item.imageUrl || animePosters.naruto)}" alt="${escapeHtml(item.title || "Anime")} poster">
+        <span><strong>${escapeHtml(item.title || "Untitled anime")}</strong><small>${escapeHtml(item.genre || "Anime")} - ${escapeHtml(item.studio || "Studio TBA")}</small></span>
       </button>
     `).join("") || `<div class="empty-state">No Jikan results found.</div>`);
   } catch (error) {

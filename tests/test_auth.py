@@ -202,18 +202,32 @@ def test_shared_state_write_requires_an_administrator(client):
     assert response.get_json()["error"] == "Administrator access is required"
 
 
-def test_jikan_search_uses_local_fallback(client, monkeypatch):
-    def fake_urlopen(*args, **kwargs):
+def test_jikan_search_uses_secondary_catalogue_when_jikan_is_unavailable(client, monkeypatch):
+    app_module.JIKAN_CACHE.clear()
+
+    def unavailable_jikan(*args, **kwargs):
         raise URLError("offline")
 
-    monkeypatch.setattr(app_module, "urlopen", fake_urlopen)
+    monkeypatch.setattr(app_module, "fetch_jikan_payload", unavailable_jikan)
+    monkeypatch.setattr(app_module, "fetch_anilist_payload", lambda query: {
+        "data": {"Page": {"media": [{
+            "title": {"english": "Frieren: Beyond Journey's End", "romaji": "Sousou no Frieren"},
+            "episodes": 28,
+            "averageScore": 90,
+            "genres": ["Adventure", "Drama"],
+            "studios": {"nodes": [{"name": "Madhouse"}]},
+            "coverImage": {"large": "https://example.com/frieren.jpg"},
+            "trailer": None,
+            "siteUrl": "https://anilist.co/anime/154587",
+        }]}}}
+    )
 
-    response = client.get("/api/jikan/search?q=naruto")
+    response = client.get("/api/jikan/search?q=frieren")
 
     assert response.status_code == 200
     payload = response.get_json()
-    assert payload["source"] == "catalogue"
-    assert payload["items"][0]["title"] == "Naruto"
+    assert payload["source"] == "secondary"
+    assert payload["items"][0]["title"] == "Frieren: Beyond Journey's End"
 
 
 def test_video_submission_rejects_non_web_url(client):
