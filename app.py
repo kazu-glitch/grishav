@@ -39,49 +39,7 @@ JIKAN_CACHE = {}
 JIKAN_TTL = 900
 JIKAN_RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 JIKAN_MAX_ATTEMPTS = 3
-
-JIKAN_FALLBACK = [
-    {
-        "title": "Naruto",
-        "episodes": 220,
-        "rating": 8.0,
-        "status": "planned",
-        "genre": "Ninja Adventure",
-        "studio": "Pierrot",
-        "imageUrl": "https://cdn.myanimelist.net/images/anime/1141/142503l.jpg",
-        "malUrl": "https://myanimelist.net/anime/20/Naruto",
-    },
-    {
-        "title": "One Piece",
-        "episodes": 1122,
-        "rating": 8.7,
-        "status": "planned",
-        "genre": "Pirate Adventure",
-        "studio": "Toei Animation",
-        "imageUrl": "https://cdn.myanimelist.net/images/anime/1244/138851l.jpg",
-        "malUrl": "https://myanimelist.net/anime/21/One_Piece",
-    },
-    {
-        "title": "Attack on Titan",
-        "episodes": 25,
-        "rating": 8.6,
-        "status": "planned",
-        "genre": "Dark Fantasy",
-        "studio": "Wit Studio",
-        "imageUrl": "https://cdn.myanimelist.net/images/anime/10/47347l.jpg",
-        "malUrl": "https://myanimelist.net/anime/16498/Shingeki_no_Kyojin",
-    },
-    {
-        "title": "Hunter x Hunter",
-        "episodes": 148,
-        "rating": 9.0,
-        "status": "planned",
-        "genre": "Action Adventure",
-        "studio": "Madhouse",
-        "imageUrl": "https://cdn.myanimelist.net/images/anime/1337/99013l.jpg",
-        "malUrl": "https://myanimelist.net/anime/11061/Hunter_x_Hunter_2011",
-    },
-]
+ANILIST_URL = "https://graphql.anilist.co"
 
 NEWS = [
     {
@@ -276,15 +234,6 @@ def notification_to_json(row):
     return row["message"]
 
 
-def fallback_jikan_items(query):
-    normalized = query.lower()
-    matches = [
-        item for item in JIKAN_FALLBACK
-        if normalized in item["title"].lower() or normalized in item["genre"].lower()
-    ]
-    return matches or JIKAN_FALLBACK[:3]
-
-
 def fetch_jikan_payload(url):
     """Fetch Jikan once more for transient upstream and rate-limit failures."""
     last_error = None
@@ -303,6 +252,79 @@ def fetch_jikan_payload(url):
         if attempt < JIKAN_MAX_ATTEMPTS - 1:
             time.sleep(1.5 * (attempt + 1))
     raise last_error
+
+
+def fetch_anilist_payload(query):
+    """Use a public catalogue only while Jikan is unavailable upstream."""
+    body = json.dumps({
+        "query": """
+            query ($search: String) {
+              Page(page: 1, perPage: 6) {
+                media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
+                  title { romaji english native }
+                  episodes
+                  averageScore
+                  genres
+                  studios { nodes { name } }
+                  coverImage { extraLarge large medium }
+                  trailer { id site }
+                  siteUrl
+                }
+              }
+            }
+        """,
+        "variables": {"search": query},
+    }).encode("utf-8")
+    req = Request(
+        ANILIST_URL,
+        data=body,
+        headers={"User-Agent": "OtakuHub/1.0", "Accept": "application/json", "Content-Type": "application/json"},
+    )
+    with urlopen(req, timeout=8) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    if payload.get("errors"):
+        raise OSError("Secondary catalogue request failed")
+    return payload
+
+
+def jikan_to_items(payload):
+    items = []
+    for anime in payload.get("data", []):
+        images = anime.get("images", {}).get("jpg", {})
+        titles = anime.get("titles", [])
+        english_title = next((item.get("title") for item in titles if item.get("type") == "English"), None)
+        items.append({
+            "title": english_title or anime.get("title_english") or anime.get("title"),
+            "episodes": anime.get("episodes") or 1,
+            "rating": anime.get("score") or 7.0,
+            "status": "planned",
+            "genre": ", ".join(genre.get("name") for genre in anime.get("genres", [])[:2]) or "Anime",
+            "studio": ", ".join(studio.get("name") for studio in anime.get("studios", [])[:2]) or "Studio TBA",
+            "imageUrl": images.get("large_image_url") or images.get("image_url"),
+            "trailerUrl": anime.get("trailer", {}).get("url"),
+            "malUrl": anime.get("url"),
+        })
+    return items
+
+
+def anilist_to_items(payload):
+    items = []
+    for anime in payload.get("data", {}).get("Page", {}).get("media", []):
+        title = anime.get("title", {})
+        trailer = anime.get("trailer") or {}
+        trailer_url = f"https://www.youtube.com/watch?v={trailer['id']}" if trailer.get("site") == "YouTube" and trailer.get("id") else None
+        items.append({
+            "title": title.get("english") or title.get("romaji") or title.get("native"),
+            "episodes": anime.get("episodes") or 1,
+            "rating": (anime.get("averageScore") or 70) / 10,
+            "status": "planned",
+            "genre": ", ".join(anime.get("genres", [])[:2]) or "Anime",
+            "studio": ", ".join(studio.get("name") for studio in anime.get("studios", {}).get("nodes", [])[:2]) or "Studio TBA",
+            "imageUrl": next((url for url in anime.get("coverImage", {}).values() if url), None),
+            "trailerUrl": trailer_url,
+            "malUrl": anime.get("siteUrl"),
+        })
+    return items
 
 
 @app.errorhandler(Error)
@@ -394,36 +416,20 @@ def search_jikan():
     cache_key = query.lower()
     cached = JIKAN_CACHE.get(cache_key)
     if cached and time.time() - cached["created_at"] < JIKAN_TTL:
-        return ok(cached["items"])
+        return ok(cached["payload"])
 
     fields = "mal_id,title,title_english,titles,episodes,score,genres,studios,images,trailer,url"
     url = f"https://api.jikan.moe/v4/anime?q={quote(query)}&limit=6&sfw=true&fields={quote(fields)}"
     try:
-        payload = fetch_jikan_payload(url)
-    except (OSError, URLError, json.JSONDecodeError) as error:
-        items = fallback_jikan_items(query)
-        # Do not cache a temporary upstream failure; the next search should retry Jikan.
-        return ok({"items": items, "source": "catalogue"})
+        response_payload = {"items": jikan_to_items(fetch_jikan_payload(url)), "source": "jikan"}
+    except (OSError, URLError, json.JSONDecodeError):
+        try:
+            response_payload = {"items": anilist_to_items(fetch_anilist_payload(query)), "source": "secondary"}
+        except (OSError, URLError, json.JSONDecodeError):
+            return ok({"error": "Anime search is temporarily unavailable. Please try again shortly."}, 503)
 
-    items = []
-    for anime in payload.get("data", []):
-        images = anime.get("images", {}).get("jpg", {})
-        titles = anime.get("titles", [])
-        english_title = next((item.get("title") for item in titles if item.get("type") == "English"), None)
-        items.append({
-            "title": english_title or anime.get("title_english") or anime.get("title"),
-            "episodes": anime.get("episodes") or 1,
-            "rating": anime.get("score") or 7.0,
-            "status": "planned",
-            "genre": ", ".join(genre.get("name") for genre in anime.get("genres", [])[:2]) or "Anime",
-            "studio": ", ".join(studio.get("name") for studio in anime.get("studios", [])[:2]) or "Studio TBA",
-            "imageUrl": images.get("large_image_url") or images.get("image_url"),
-            "trailerUrl": anime.get("trailer", {}).get("url"),
-            "malUrl": anime.get("url"),
-        })
-
-    JIKAN_CACHE[cache_key] = {"created_at": time.time(), "items": items}
-    return ok(items)
+    JIKAN_CACHE[cache_key] = {"created_at": time.time(), "payload": response_payload}
+    return ok(response_payload)
 
 
 @app.get("/api/users")
